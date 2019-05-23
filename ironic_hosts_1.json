@@ -1,0 +1,30 @@
+{
+  "nodes": 
+      [{
+      "name": "openshift-master-0",
+      "driver": "ipmi",
+      "resource_class": "baremetal",
+      "driver_info": {
+        "ipmi_username": "ADMIN",
+        "ipmi_password": "ADMIN",
+        "ipmi_address": "10.19.110.6",
+        "deploy_kernel": "http://172.22.0.1/images/ironic-python-agent.kernel",
+        "deploy_ramdisk": "http://172.22.0.1/images/ironic-python-agent.initramfs"
+      },
+      "ports": [
+       {
+        "address": "0c:c4:7a:db:a9:b9",
+        "pxe_enabled": true
+       },
+       {
+        "address": "0c:c4:7a:19:6f:86",
+        "physical_network": "baremetal",
+        "pxe_enabled": false
+       }
+      ],
+      "properties": {
+        "local_gb": "50",
+        "cpu_arch": "x86_64"
+      }
+    }]
+}
