@@ -1,0 +1,446 @@
++ source utils.sh
+++ set -o pipefail
++ source common.sh
++++ go env
+++ eval 'GOARCH="amd64"
+GOBIN=""
+GOCACHE="/root/.cache/go-build"
+GOEXE=""
+GOFLAGS=""
+GOHOSTARCH="amd64"
+GOHOSTOS="linux"
+GOOS="linux"
+GOPATH="/root/go"
+GOPROXY=""
+GORACE=""
+GOROOT="/usr/lib/golang"
+GOTMPDIR=""
+GOTOOLDIR="/usr/lib/golang/pkg/tool/linux_amd64"
+GCCGO="gccgo"
+CC="gcc"
+CXX="g++"
+CGO_ENABLED="1"
+GOMOD=""
+CGO_CFLAGS="-g -O2"
+CGO_CPPFLAGS=""
+CGO_CXXFLAGS="-g -O2"
+CGO_FFLAGS="-g -O2"
+CGO_LDFLAGS="-g -O2"
+PKG_CONFIG="pkg-config"
+GOGCCFLAGS="-fPIC -m64 -pthread -fmessage-length=0 -fdebug-prefix-map=/tmp/go-build121606580=/tmp/go-build -gno-record-gcc-switches"'
++++ GOARCH=amd64
++++ GOBIN=
++++ GOCACHE=/root/.cache/go-build
++++ GOEXE=
++++ GOFLAGS=
++++ GOHOSTARCH=amd64
++++ GOHOSTOS=linux
++++ GOOS=linux
++++ GOPATH=/root/go
++++ GOPROXY=
++++ GORACE=
++++ GOROOT=/usr/lib/golang
++++ GOTMPDIR=
++++ GOTOOLDIR=/usr/lib/golang/pkg/tool/linux_amd64
++++ GCCGO=gccgo
++++ CC=gcc
++++ CXX=g++
++++ CGO_ENABLED=1
++++ GOMOD=
++++ CGO_CFLAGS='-g -O2'
++++ CGO_CPPFLAGS=
++++ CGO_CXXFLAGS='-g -O2'
++++ CGO_FFLAGS='-g -O2'
++++ CGO_LDFLAGS='-g -O2'
++++ PKG_CONFIG=pkg-config
++++ GOGCCFLAGS='-fPIC -m64 -pthread -fmessage-length=0 -fdebug-prefix-map=/tmp/go-build121606580=/tmp/go-build -gno-record-gcc-switches'
+++++ dirname common.sh
++++ cd .
++++ pwd
+++ SCRIPTDIR=/root/dev/dev-scripts
++++ whoami
+++ USER=root
+++ '[' -z /root/dev/kni-lab/config_example.sh ']'
+++ source /root/dev/kni-lab/config_example.sh
++++ export PRO_IF=eno2
++++ PRO_IF=eno2
++++ export MANAGE_PRO_BRIDGE=y
++++ MANAGE_PRO_BRIDGE=y
++++ export INT_IF=ens1f0
++++ INT_IF=ens1f0
++++ export MANAGE_INT_BRIDGE=n
++++ MANAGE_INT_BRIDGE=n
++++ export ROOT_DISK=/dev/sda
++++ ROOT_DISK=/dev/sda
++++ export CLUSTER_NAME=test1
++++ CLUSTER_NAME=test1
++++ export BASE_DOMAIN=kni.home
++++ BASE_DOMAIN=kni.home
++++ export MANAGE_BR_BRIDGE=n
++++ MANAGE_BR_BRIDGE=n
++++ export NODES_PLATFORM=BM
++++ NODES_PLATFORM=BM
++++ export NODES_FILE=/root/dev/kni-lab/ironic_hosts_3.json
++++ NODES_FILE=/root/dev/kni-lab/ironic_hosts_3.json
+++ ADDN_DNS=
+++ EXT_IF=
+++ PRO_IF=eno2
+++ MANAGE_BR_BRIDGE=n
+++ MANAGE_PRO_BRIDGE=y
+++ MANAGE_INT_BRIDGE=n
+++ INT_IF=ens1f0
+++ ROOT_DISK_NAME=/dev/sda
+++ FILESYSTEM=/
+++ WORKING_DIR=/opt/dev-scripts
+++ NODES_FILE=/root/dev/kni-lab/ironic_hosts_3.json
+++ NODES_PLATFORM=BM
+++ MASTER_NODES_FILE=ocp/master_nodes.json
+++ export NUM_MASTERS=3
+++ NUM_MASTERS=3
+++ export NUM_WORKERS=1
+++ NUM_WORKERS=1
+++ export VM_EXTRADISKS=false
+++ VM_EXTRADISKS=false
+++ export RHCOS_INSTALLER_IMAGE_URL=https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/ootpa/410.8.20190508.1/
+++ RHCOS_INSTALLER_IMAGE_URL=https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/ootpa/410.8.20190508.1/
+++ export RHCOS_IMAGE_URL=https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/ootpa/410.8.20190508.1/
+++ RHCOS_IMAGE_URL=https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/ootpa/410.8.20190508.1/
++++ curl https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/ootpa/410.8.20190508.1//meta.json
++++ jq -r .images.openstack.path
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  5154  100  5154    0     0   9783      0 --:--:-- --:--:-- --:--:--  9779100  5154  100  5154    0     0   9780      0 --:--:-- --:--:-- --:--:--  9779
+++ export RHCOS_IMAGE_FILENAME_OPENSTACK_GZ=rhcos-410.8.20190508.1-openstack.qcow2
+++ RHCOS_IMAGE_FILENAME_OPENSTACK_GZ=rhcos-410.8.20190508.1-openstack.qcow2
++++ echo rhcos-410.8.20190508.1-openstack.qcow2
++++ sed -e 's/-openstack.*//'
+++ export RHCOS_IMAGE_NAME=rhcos-410.8.20190508.1
+++ RHCOS_IMAGE_NAME=rhcos-410.8.20190508.1
+++ export RHCOS_IMAGE_FILENAME_OPENSTACK=rhcos-410.8.20190508.1-openstack.qcow2
+++ RHCOS_IMAGE_FILENAME_OPENSTACK=rhcos-410.8.20190508.1-openstack.qcow2
+++ export RHCOS_IMAGE_FILENAME_COMPRESSED=rhcos-410.8.20190508.1-compressed.qcow2
+++ RHCOS_IMAGE_FILENAME_COMPRESSED=rhcos-410.8.20190508.1-compressed.qcow2
+++ export RHCOS_IMAGE_FILENAME_LATEST=rhcos-ootpa-latest.qcow2
+++ RHCOS_IMAGE_FILENAME_LATEST=rhcos-ootpa-latest.qcow2
+++ export IRONIC_IMAGE=quay.io/metal3-io/ironic
+++ IRONIC_IMAGE=quay.io/metal3-io/ironic
+++ export IRONIC_INSPECTOR_IMAGE=quay.io/metal3-io/ironic-inspector
+++ IRONIC_INSPECTOR_IMAGE=quay.io/metal3-io/ironic-inspector
+++ export IRONIC_DATA_DIR=/opt/dev-scripts/ironic
+++ IRONIC_DATA_DIR=/opt/dev-scripts/ironic
+++ export KUBECONFIG=/root/dev/dev-scripts/ocp/auth/kubeconfig
+++ KUBECONFIG=/root/dev/dev-scripts/ocp/auth/kubeconfig
+++ export 'SSH=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5'
+++ SSH='ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5'
+++ export LIBVIRT_DEFAULT_URI=qemu:///system
+++ LIBVIRT_DEFAULT_URI=qemu:///system
+++ '[' root '!=' root -a /run/user/0 == /run/user/0 ']'
+++ sudo -n uptime
++++ awk -F= '/^ID=/ { print $2 }' /etc/os-release
++++ tr -d '"'
+++ [[ ! centos =~ ^(centos|rhel)$ ]]
++++ awk -F= '/^VERSION_ID=/ { print $2 }' /etc/os-release
++++ tr -d '"'
++++ cut -f1 -d.
+++ [[ 7 -ne 7 ]]
++++ df / --output=fstype
++++ grep -v Type
+++ FSTYPE=xfs
+++ case ${FSTYPE} in
++++ xfs_info /
++++ grep -q ftype=1
+++ [[ -n '' ]]
+++ '[' 4192 = 0 ']'
+++ '[' '!' -d /opt/dev-scripts ']'
+++ sudo chown root:root /opt/dev-scripts
+++ chmod 755 /opt/dev-scripts
+++ export OPENSHIFT_INSTALLER=ocp/openshift-install
+++ OPENSHIFT_INSTALLER=ocp/openshift-install
++ source ocp_install_env.sh
++++ go env
+++ eval 'GOARCH="amd64"
+GOBIN=""
+GOCACHE="/root/.cache/go-build"
+GOEXE=""
+GOFLAGS=""
+GOHOSTARCH="amd64"
+GOHOSTOS="linux"
+GOOS="linux"
+GOPATH="/root/go"
+GOPROXY=""
+GORACE=""
+GOROOT="/usr/lib/golang"
+GOTMPDIR=""
+GOTOOLDIR="/usr/lib/golang/pkg/tool/linux_amd64"
+GCCGO="gccgo"
+CC="gcc"
+CXX="g++"
+CGO_ENABLED="1"
+GOMOD=""
+CGO_CFLAGS="-g -O2"
+CGO_CPPFLAGS=""
+CGO_CXXFLAGS="-g -O2"
+CGO_FFLAGS="-g -O2"
+CGO_LDFLAGS="-g -O2"
+PKG_CONFIG="pkg-config"
+GOGCCFLAGS="-fPIC -m64 -pthread -fmessage-length=0 -fdebug-prefix-map=/tmp/go-build523891298=/tmp/go-build -gno-record-gcc-switches"'
++++ GOARCH=amd64
++++ GOBIN=
++++ GOCACHE=/root/.cache/go-build
++++ GOEXE=
++++ GOFLAGS=
++++ GOHOSTARCH=amd64
++++ GOHOSTOS=linux
++++ GOOS=linux
++++ GOPATH=/root/go
++++ GOPROXY=
++++ GORACE=
++++ GOROOT=/usr/lib/golang
++++ GOTMPDIR=
++++ GOTOOLDIR=/usr/lib/golang/pkg/tool/linux_amd64
++++ GCCGO=gccgo
++++ CC=gcc
++++ CXX=g++
++++ CGO_ENABLED=1
++++ GOMOD=
++++ CGO_CFLAGS='-g -O2'
++++ CGO_CPPFLAGS=
++++ CGO_CXXFLAGS='-g -O2'
++++ CGO_FFLAGS='-g -O2'
++++ CGO_LDFLAGS='-g -O2'
++++ PKG_CONFIG=pkg-config
++++ GOGCCFLAGS='-fPIC -m64 -pthread -fmessage-length=0 -fdebug-prefix-map=/tmp/go-build523891298=/tmp/go-build -gno-record-gcc-switches'
+++ export OPENSHIFT_INSTALL_DATA=/root/go/src/github.com/openshift-metalkube/kni-installer/data/data
+++ OPENSHIFT_INSTALL_DATA=/root/go/src/github.com/openshift-metalkube/kni-installer/data/data
+++ export BASE_DOMAIN=kni.home
+++ BASE_DOMAIN=kni.home
+++ export CLUSTER_NAME=test1
+++ CLUSTER_NAME=test1
+++ export CLUSTER_DOMAIN=test1.kni.home
+++ CLUSTER_DOMAIN=test1.kni.home
+++ export 'SSH_PUB_KEY=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCnkkl9CgPkzVCCsWDf8Oo2h1dxC7M6+yDvXWJPRIImR2KJRxCem4Q11V39sP5hak2jn/NT3Av8z34r7p+edRTNFqW63gMZ3tOwrcmwR7cH9dT2uNbwNLBCg9mekS5wE1hNQbDOJaFSVkHdZlAZJHoNyCynE8d+wJhxPiKyAwKp+3GWombcnqfcxW/k8FvEhLFG5rqpLt2TV+CCSGFchviQ0m6X98SEk/rqVxqRAIH06EA+2AW2P2zqj2epzlveT4UyJTmHVj85onXS1rl3YhKMKBXZVZtAVgte/y6eZt5PbiRWwujmm/NUjOpFD8/X6VtZKzmEEg6nldtiw0+YCzsz aasmith@redhat.com'
+++ SSH_PUB_KEY='ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCnkkl9CgPkzVCCsWDf8Oo2h1dxC7M6+yDvXWJPRIImR2KJRxCem4Q11V39sP5hak2jn/NT3Av8z34r7p+edRTNFqW63gMZ3tOwrcmwR7cH9dT2uNbwNLBCg9mekS5wE1hNQbDOJaFSVkHdZlAZJHoNyCynE8d+wJhxPiKyAwKp+3GWombcnqfcxW/k8FvEhLFG5rqpLt2TV+CCSGFchviQ0m6X98SEk/rqVxqRAIH06EA+2AW2P2zqj2epzlveT4UyJTmHVj85onXS1rl3YhKMKBXZVZtAVgte/y6eZt5PbiRWwujmm/NUjOpFD8/X6VtZKzmEEg6nldtiw0+YCzsz aasmith@redhat.com'
+++ export EXTERNAL_SUBNET=192.168.111.0/24
+++ EXTERNAL_SUBNET=192.168.111.0/24
+++ export OPENSHIFT_RELEASE_IMAGE=registry.svc.ci.openshift.org/kni/release:4.1.0-rc.5-kni.1
+++ OPENSHIFT_RELEASE_IMAGE=registry.svc.ci.openshift.org/kni/release:4.1.0-rc.5-kni.1
+++ oc --config ocp/auth/kubeconfig get nodes -o template '--template={{range .items}}{{.metadata.uid}}:{{.metadata.name}}{{"\n"}}{{end}}'
++ for node in '$(oc --config ocp/auth/kubeconfig get nodes -o template --template='\''{{range .items}}{{.metadata.uid}}:{{.metadata.name}}{{"\n"}}{{end}}'\'')'
+++ echo 1cdd0f89-7d78-11e9-913f-46133f45bd97:openshift-master-0
+++ cut -f2 -d:
++ node_name=openshift-master-0
++ machine_name=test1-openshift-master-0
++ [[ test1-openshift-master-0 == *\w\o\r\k\e\r* ]]
++ /root/dev/dev-scripts/link-machine-and-node.sh test1-openshift-master-0 1cdd0f89-7d78-11e9-913f-46133f45bd97:openshift-master-0
++ set -e
++ machine=test1-openshift-master-0
++ node=1cdd0f89-7d78-11e9-913f-46133f45bd97:openshift-master-0
++ '[' -z test1-openshift-master-0 -o -z 1cdd0f89-7d78-11e9-913f-46133f45bd97:openshift-master-0 ']'
+++ echo 1cdd0f89-7d78-11e9-913f-46133f45bd97:openshift-master-0
+++ cut -f1 -d:
++ uid=1cdd0f89-7d78-11e9-913f-46133f45bd97
+++ echo 1cdd0f89-7d78-11e9-913f-46133f45bd97:openshift-master-0
+++ cut -f2 -d:
++ node_name=openshift-master-0
++ proxy_pid=356
++ PROXY_API_PATH=http://localhost:8001/apis/machine.openshift.io/v1beta1/namespaces/openshift-machine-api/machines
++ wait_for_json oc_proxy http://localhost:8001/apis/machine.openshift.io/v1beta1/namespaces/openshift-machine-api/machines 10 -H 'Accept: application/json' -H 'Content-Type: application/json'
++ local name
++ oc --config ocp/auth/kubeconfig proxy
++ local url
++ local curl_opts
++ local timeout
++ local start_time
++ local curr_time
++ local time_diff
++ name=oc_proxy
++ url=http://localhost:8001/apis/machine.openshift.io/v1beta1/namespaces/openshift-machine-api/machines
++ timeout=10
++ shift 3
++ curl_opts='-H Accept: application/json -H Content-Type: application/json'
++ echo -n 'Waiting for oc_proxy to respond'
+Waiting for oc_proxy to respond++ date +%s
++ start_time=1558629245
++ curl -g -X GET http://localhost:8001/apis/machine.openshift.io/v1beta1/namespaces/openshift-machine-api/machines '-H Accept: application/json -H Content-Type: application/json'
++ jq .
++ echo -n .
+.++ date +%s
++ curr_time=1558629245
++ time_diff=0
++ [[ 0 -gt 10 ]]
++ sleep 5
+Starting to serve on 127.0.0.1:8001
++ curl -g -X GET http://localhost:8001/apis/machine.openshift.io/v1beta1/namespaces/openshift-machine-api/machines '-H Accept: application/json -H Content-Type: application/json'
++ jq .
++ echo ' Success!'
+ Success!
++ return 0
+++ oc --config ocp/auth/kubeconfig get node openshift-master-0 -o json
+++ jq -c .status.addresses
++ addresses='[{"address":"192.168.111.20","type":"InternalIP"},{"address":"openshift-master-0","type":"Hostname"}]'
++ curl -X PATCH http://localhost:8001/apis/machine.openshift.io/v1beta1/namespaces/openshift-machine-api/machines/test1-openshift-master-0/status -H 'Content-type: application/merge-patch+json' -d '{"status":{"addresses":[{"address":"192.168.111.20","type":"InternalIP"},{"address":"openshift-master-0","type":"Hostname"}],"nodeRef":{"kind":"Node","name":"openshift-master-0","uid":"1cdd0f89-7d78-11e9-913f-46133f45bd97"}}}'
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   562  100   337  100   225  39314  26248 --:--:-- --:--:-- --:--:-- 42125
+{
+  "kind": "Status",
+  "apiVersion": "v1",
+  "metadata": {
+    
+  },
+  "status": "Failure",
+  "message": "machines.machine.openshift.io \"test1-openshift-master-0\" not found",
+  "reason": "NotFound",
+  "details": {
+    "name": "test1-openshift-master-0",
+    "group": "machine.openshift.io",
+    "kind": "machines"
+  },
+  "code": 404
+}+ kill 356
++ for node in '$(oc --config ocp/auth/kubeconfig get nodes -o template --template='\''{{range .items}}{{.metadata.uid}}:{{.metadata.name}}{{"\n"}}{{end}}'\'')'
+++ echo 20b7b93d-7d78-11e9-913f-46133f45bd97:openshift-master-1
+++ cut -f2 -d:
++ node_name=openshift-master-1
++ machine_name=test1-openshift-master-1
++ [[ test1-openshift-master-1 == *\w\o\r\k\e\r* ]]
++ /root/dev/dev-scripts/link-machine-and-node.sh test1-openshift-master-1 20b7b93d-7d78-11e9-913f-46133f45bd97:openshift-master-1
++ set -e
++ machine=test1-openshift-master-1
++ node=20b7b93d-7d78-11e9-913f-46133f45bd97:openshift-master-1
++ '[' -z test1-openshift-master-1 -o -z 20b7b93d-7d78-11e9-913f-46133f45bd97:openshift-master-1 ']'
+++ echo 20b7b93d-7d78-11e9-913f-46133f45bd97:openshift-master-1
+++ cut -f1 -d:
++ uid=20b7b93d-7d78-11e9-913f-46133f45bd97
+++ echo 20b7b93d-7d78-11e9-913f-46133f45bd97:openshift-master-1
+++ cut -f2 -d:
++ node_name=openshift-master-1
++ proxy_pid=474
++ PROXY_API_PATH=http://localhost:8001/apis/machine.openshift.io/v1beta1/namespaces/openshift-machine-api/machines
++ oc --config ocp/auth/kubeconfig proxy
++ wait_for_json oc_proxy http://localhost:8001/apis/machine.openshift.io/v1beta1/namespaces/openshift-machine-api/machines 10 -H 'Accept: application/json' -H 'Content-Type: application/json'
++ local name
++ local url
++ local curl_opts
++ local timeout
++ local start_time
++ local curr_time
++ local time_diff
++ name=oc_proxy
++ url=http://localhost:8001/apis/machine.openshift.io/v1beta1/namespaces/openshift-machine-api/machines
++ timeout=10
++ shift 3
++ curl_opts='-H Accept: application/json -H Content-Type: application/json'
++ echo -n 'Waiting for oc_proxy to respond'
+Waiting for oc_proxy to respond++ date +%s
++ start_time=1558629250
++ curl -g -X GET http://localhost:8001/apis/machine.openshift.io/v1beta1/namespaces/openshift-machine-api/machines '-H Accept: application/json -H Content-Type: application/json'
++ jq .
++ echo -n .
+.++ date +%s
++ curr_time=1558629250
++ time_diff=0
++ [[ 0 -gt 10 ]]
++ sleep 5
+Starting to serve on 127.0.0.1:8001
++ curl -g -X GET http://localhost:8001/apis/machine.openshift.io/v1beta1/namespaces/openshift-machine-api/machines '-H Accept: application/json -H Content-Type: application/json'
++ jq .
++ echo ' Success!'
+ Success!
++ return 0
+++ oc --config ocp/auth/kubeconfig get node openshift-master-1 -o json
+++ jq -c .status.addresses
++ addresses='[{"address":"192.168.111.21","type":"InternalIP"},{"address":"openshift-master-1","type":"Hostname"}]'
++ curl -X PATCH http://localhost:8001/apis/machine.openshift.io/v1beta1/namespaces/openshift-machine-api/machines/test1-openshift-master-1/status -H 'Content-type: application/merge-patch+json' -d '{"status":{"addresses":[{"address":"192.168.111.21","type":"InternalIP"},{"address":"openshift-master-1","type":"Hostname"}],"nodeRef":{"kind":"Node","name":"openshift-master-1","uid":"20b7b93d-7d78-11e9-913f-46133f45bd97"}}}'
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   562  100   337  100   225  37118  24782 --:--:-- --:--:-- --:--:-- 42125
+{
+  "kind": "Status",
+  "apiVersion": "v1",
+  "metadata": {
+    
+  },
+  "status": "Failure",
+  "message": "machines.machine.openshift.io \"test1-openshift-master-1\" not found",
+  "reason": "NotFound",
+  "details": {
+    "name": "test1-openshift-master-1",
+    "group": "machine.openshift.io",
+    "kind": "machines"
+  },
+  "code": 404
+}+ kill 474
++ for node in '$(oc --config ocp/auth/kubeconfig get nodes -o template --template='\''{{range .items}}{{.metadata.uid}}:{{.metadata.name}}{{"\n"}}{{end}}'\'')'
+++ echo 20b594a9-7d78-11e9-913f-46133f45bd97:openshift-master-2
+++ cut -f2 -d:
++ node_name=openshift-master-2
++ machine_name=test1-openshift-master-2
++ [[ test1-openshift-master-2 == *\w\o\r\k\e\r* ]]
++ /root/dev/dev-scripts/link-machine-and-node.sh test1-openshift-master-2 20b594a9-7d78-11e9-913f-46133f45bd97:openshift-master-2
++ set -e
++ machine=test1-openshift-master-2
++ node=20b594a9-7d78-11e9-913f-46133f45bd97:openshift-master-2
++ '[' -z test1-openshift-master-2 -o -z 20b594a9-7d78-11e9-913f-46133f45bd97:openshift-master-2 ']'
+++ echo 20b594a9-7d78-11e9-913f-46133f45bd97:openshift-master-2
+++ cut -f1 -d:
++ uid=20b594a9-7d78-11e9-913f-46133f45bd97
+++ echo 20b594a9-7d78-11e9-913f-46133f45bd97:openshift-master-2
+++ cut -f2 -d:
++ node_name=openshift-master-2
++ proxy_pid=607
++ PROXY_API_PATH=http://localhost:8001/apis/machine.openshift.io/v1beta1/namespaces/openshift-machine-api/machines
++ wait_for_json oc_proxy http://localhost:8001/apis/machine.openshift.io/v1beta1/namespaces/openshift-machine-api/machines 10 -H 'Accept: application/json' -H 'Content-Type: application/json'
++ oc --config ocp/auth/kubeconfig proxy
++ local name
++ local url
++ local curl_opts
++ local timeout
++ local start_time
++ local curr_time
++ local time_diff
++ name=oc_proxy
++ url=http://localhost:8001/apis/machine.openshift.io/v1beta1/namespaces/openshift-machine-api/machines
++ timeout=10
++ shift 3
++ curl_opts='-H Accept: application/json -H Content-Type: application/json'
++ echo -n 'Waiting for oc_proxy to respond'
+Waiting for oc_proxy to respond++ date +%s
++ start_time=1558629256
++ curl -g -X GET http://localhost:8001/apis/machine.openshift.io/v1beta1/namespaces/openshift-machine-api/machines '-H Accept: application/json -H Content-Type: application/json'
++ jq .
++ echo -n .
+.++ date +%s
++ curr_time=1558629256
++ time_diff=0
++ [[ 0 -gt 10 ]]
++ sleep 5
+Starting to serve on 127.0.0.1:8001
++ curl -g -X GET http://localhost:8001/apis/machine.openshift.io/v1beta1/namespaces/openshift-machine-api/machines '-H Accept: application/json -H Content-Type: application/json'
++ jq .
++ echo ' Success!'
+ Success!
++ return 0
+++ oc --config ocp/auth/kubeconfig get node openshift-master-2 -o json
+++ jq -c .status.addresses
++ addresses='[{"address":"192.168.111.22","type":"InternalIP"},{"address":"openshift-master-2","type":"Hostname"}]'
++ curl -X PATCH http://localhost:8001/apis/machine.openshift.io/v1beta1/namespaces/openshift-machine-api/machines/test1-openshift-master-2/status -H 'Content-type: application/merge-patch+json' -d '{"status":{"addresses":[{"address":"192.168.111.22","type":"InternalIP"},{"address":"openshift-master-2","type":"Hostname"}],"nodeRef":{"kind":"Node","name":"openshift-master-2","uid":"20b594a9-7d78-11e9-913f-46133f45bd97"}}}'
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   562  100   337  100   225  38400  25638 --:--:-- --:--:-- --:--:-- 42125
+{
+  "kind": "Status",
+  "apiVersion": "v1",
+  "metadata": {
+    
+  },
+  "status": "Failure",
+  "message": "machines.machine.openshift.io \"test1-openshift-master-2\" not found",
+  "reason": "NotFound",
+  "details": {
+    "name": "test1-openshift-master-2",
+    "group": "machine.openshift.io",
+    "kind": "machines"
+  },
+  "code": 404
+}+ kill 607

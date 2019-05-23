@@ -1,0 +1,205 @@
++ sudo yum install -y libselinux-utils
+Loaded plugins: fastestmirror, priorities
+Loading mirror speeds from cached hostfile
+ * base: mirror.linux.duke.edu
+ * centos-qemu-ev: distro.ibiblio.org
+ * epel: mirror.us.leaseweb.net
+ * extras: mirror.linux.duke.edu
+ * updates: distro.ibiblio.org
+7 packages excluded due to repository priority protections
+Package libselinux-utils-2.5-14.1.el7.x86_64 already installed and latest version
+Nothing to do
++ selinuxenabled
++ sudo setenforce permissive
++ sudo sed -i s/=enforcing/=permissive/g /etc/selinux/config
++ sudo yum -y update
+Loaded plugins: fastestmirror, priorities
+Loading mirror speeds from cached hostfile
+ * base: packages.oit.ncsu.edu
+ * centos-qemu-ev: packages.oit.ncsu.edu
+ * epel: mirror.cogentco.com
+ * extras: packages.oit.ncsu.edu
+ * updates: packages.oit.ncsu.edu
+7 packages excluded due to repository priority protections
+No packages marked for update
++ '[' '!' -f /etc/yum.repos.d/epel.repo ']'
++ grep -q zeromq /etc/yum.repos.d/epel.repo
++ sudo yum -y install crudini curl dnsmasq figlet golang NetworkManager nmap patch psmisc python-pip python-requests python-setuptools vim-enhanced wget
+Loaded plugins: fastestmirror, priorities
+Loading mirror speeds from cached hostfile
+ * base: packages.oit.ncsu.edu
+ * centos-qemu-ev: packages.oit.ncsu.edu
+ * epel: mirror.cogentco.com
+ * extras: packages.oit.ncsu.edu
+ * updates: packages.oit.ncsu.edu
+7 packages excluded due to repository priority protections
+Package crudini-0.9-2.el7.noarch already installed and latest version
+Package curl-7.29.0-51.el7.x86_64 already installed and latest version
+Package dnsmasq-2.76-7.el7.x86_64 already installed and latest version
+Package figlet-2.2.5-9.el7.x86_64 already installed and latest version
+Package golang-1.11.5-1.el7.x86_64 already installed and latest version
+Package 1:NetworkManager-1.12.0-10.el7_6.x86_64 already installed and latest version
+Package 2:nmap-6.40-16.el7.x86_64 already installed and latest version
+Package patch-2.7.1-10.el7_5.x86_64 already installed and latest version
+Package psmisc-22.20-15.el7.x86_64 already installed and latest version
+Package python-pip-8.1.2-1.el7.noarch is obsoleted by python2-pip-8.1.2-8.el7.noarch which is already installed
+Package python-requests-2.6.0-1.el7_1.noarch is obsoleted by python2-requests-2.21.0-2.el7.noarch which is already installed
+Package python-setuptools-0.9.8-7.el7.noarch is obsoleted by python2-setuptools-40.8.0-1.el7.noarch which is already installed
+Package 2:vim-enhanced-7.4.160-5.el7.x86_64 already installed and latest version
+Package wget-1.14-18.el7_6.1.x86_64 already installed and latest version
+Nothing to do
++ cd
++ '[' '!' -d tripleo-repos ']'
++ pushd tripleo-repos
+~/tripleo-repos ~
++ sudo python setup.py install
+running install
+[pbr] Writing ChangeLog
+[pbr] Generating ChangeLog
+[pbr] ChangeLog complete (0.0s)
+[pbr] Generating AUTHORS
+[pbr] AUTHORS complete (0.0s)
+running build
+running build_py
+running egg_info
+writing requirements to tripleo_repos.egg-info/requires.txt
+writing tripleo_repos.egg-info/PKG-INFO
+writing top-level names to tripleo_repos.egg-info/top_level.txt
+writing dependency_links to tripleo_repos.egg-info/dependency_links.txt
+writing entry points to tripleo_repos.egg-info/entry_points.txt
+writing pbr to tripleo_repos.egg-info/pbr.json
+[pbr] Processing SOURCES.txt
+[pbr] In git context, generating filelist from git
+warning: no previously-included files matching '*.pyc' found anywhere in distribution
+writing manifest file 'tripleo_repos.egg-info/SOURCES.txt'
+running install_lib
+running install_egg_info
+removing '/usr/lib/python2.7/site-packages/tripleo_repos-0.0.1.dev76-py2.7.egg-info' (and everything under it)
+Copying tripleo_repos.egg-info to /usr/lib/python2.7/site-packages/tripleo_repos-0.0.1.dev76-py2.7.egg-info
+running install_scripts
+/usr/lib/python2.7/site-packages/pbr/packaging.py:410: EasyInstallDeprecationWarning: Use get_header
+  header = easy_install.get_script_header("", executable, is_wininst)
+Installing tripleo-repos script to /usr/bin
++ popd
+~
++ sudo tripleo-repos current-tripleo
+WARNING: --centos-mirror was deprecated in favour of --mirror
+Loaded plugins: fastestmirror, priorities
+Loading mirror speeds from cached hostfile
+ * base: packages.oit.ncsu.edu
+ * centos-qemu-ev: packages.oit.ncsu.edu
+ * epel: mirror.cogentco.com
+ * extras: packages.oit.ncsu.edu
+ * updates: packages.oit.ncsu.edu
+7 packages excluded due to repository priority protections
+Package yum-plugin-priorities-1.1.31-50.el7.noarch already installed and latest version
+Nothing to do
+Loaded plugins: fastestmirror, priorities
+Cleaning repos: base centos-qemu-ev delorean delorean-master-build-deps
+              : delorean-master-testing epel extras nodesource rdo-qemu-ev
+              : updates yarn
+32 metadata files removed
+22 sqlite files removed
+0 metadata files removed
+Removed old repo "/etc/yum.repos.d/delorean.repo"
+Removed old repo "/etc/yum.repos.d/delorean-master-testing.repo"
+Installed repo delorean to /etc/yum.repos.d/delorean.repo
+Installed repo delorean-master-testing to /etc/yum.repos.d/delorean-master-testing.repo
++ sudo yum -y update
+Loaded plugins: fastestmirror, priorities
+Loading mirror speeds from cached hostfile
+ * base: reflector.westga.edu
+ * centos-qemu-ev: repos-va.psychz.net
+ * epel: mirror.cogentco.com
+ * extras: mirrors.rit.edu
+ * updates: mirrors.greenmountainaccess.net
+7 packages excluded due to repository priority protections
+No packages marked for update
++ sudo curl -sL https://dl.yarnpkg.com/rpm/yarn.repo -o /etc/yum.repos.d/yarn.repo
++ curl -sL https://rpm.nodesource.com/setup_10.x
++ sudo bash -
+
+## Installing the NodeSource Node.js 10.x repo...
+
+
+## Inspecting system...
+
++ rpm -q --whatprovides redhat-release || rpm -q --whatprovides centos-release || rpm -q --whatprovides cloudlinux-release || rpm -q --whatprovides sl-release
++ uname -m
+
+## Confirming "el7-x86_64" is supported...
+
++ curl -sLf -o /dev/null 'https://rpm.nodesource.com/pub_10.x/el/7/x86_64/nodesource-release-el7-1.noarch.rpm'
+
+## Downloading release setup RPM...
+
++ mktemp
++ curl -sL -o '/tmp/tmp.vpfVT6aM3O' 'https://rpm.nodesource.com/pub_10.x/el/7/x86_64/nodesource-release-el7-1.noarch.rpm'
+
+## Installing release setup RPM...
+
++ rpm -i --nosignature --force '/tmp/tmp.vpfVT6aM3O'
+
+## Cleaning up...
+
++ rm -f '/tmp/tmp.vpfVT6aM3O'
+
+## Checking for existing installations...
+
++ rpm -qa 'node|npm' | grep -v nodesource
+
+## Run `sudo yum install -y nodejs` to install Node.js 10.x and npm.
+## You may also need development tools to build native addons:
+     sudo yum install gcc-c++ make
+## To install the Yarn package manager, run:
+     curl -sL https://dl.yarnpkg.com/rpm/yarn.repo | sudo tee /etc/yum.repos.d/yarn.repo
+     sudo yum install yarn
+
++ sudo yum -y install ansible bind-utils jq libguestfs-tools libvirt libvirt-devel libvirt-daemon-kvm nodejs podman python-ironicclient python-ironic-inspector-client python-lxml python-netaddr python-openstackclient python-virtualbmc qemu-kvm virt-install unzip yarn
+Loaded plugins: fastestmirror, priorities
+Loading mirror speeds from cached hostfile
+ * base: mirrors.seas.harvard.edu
+ * centos-qemu-ev: repos-va.psychz.net
+ * epel: mirror.cogentco.com
+ * extras: mirror.fileplanet.com
+ * updates: mirrors.greenmountainaccess.net
+7 packages excluded due to repository priority protections
+Package matching ansible-2.7.10-1.el7.ans.noarch already installed. Checking for update.
+Package 32:bind-utils-9.9.4-73.el7_6.x86_64 already installed and latest version
+Package jq-1.5-10.el7.x86_64 already installed and latest version
+Package 1:libguestfs-tools-1.38.2-12.el7_6.2.noarch already installed and latest version
+Package libvirt-4.5.0-10.el7_6.9.x86_64 already installed and latest version
+Package libvirt-devel-4.5.0-10.el7_6.9.x86_64 already installed and latest version
+Package libvirt-daemon-kvm-4.5.0-10.el7_6.9.x86_64 already installed and latest version
+Package 2:nodejs-10.15.3-1nodesource.x86_64 already installed and latest version
+Package podman-1.2-2.git3bd528e.el7.x86_64 already installed and latest version
+Package python2-ironicclient-2.7.0-0.20190310214800.4af8a79.el7.noarch already installed and latest version
+Package python2-ironic-inspector-client-3.5.0-0.20190311120303.9bb1150.el7.noarch already installed and latest version
+Package python-lxml-3.2.1-4.el7.x86_64 already installed and latest version
+Package python-netaddr-0.7.5-9.el7.noarch is obsoleted by python2-netaddr-0.7.19-5.el7.noarch which is already installed
+Package python2-openstackclient-3.18.0-0.20190311121958.6868499.el7.noarch already installed and latest version
+Package python2-virtualbmc-1.5.0-0.20190401094255.bff0e6c.el7.noarch already installed and latest version
+Package 10:qemu-kvm-1.5.3-160.el7_6.2.x86_64 is obsoleted by 10:qemu-kvm-ev-2.12.0-18.el7_6.5.1.x86_64 which is already installed
+Package virt-install-1.5.0-1.el7.noarch already installed and latest version
+Package unzip-6.0-19.el7.x86_64 already installed and latest version
+Package yarn-1.16.0-1.noarch already installed and latest version
+Nothing to do
++ sudo pip install lolcat yq
+Requirement already satisfied (use --upgrade to upgrade): lolcat in /usr/lib/python2.7/site-packages
+Requirement already satisfied (use --upgrade to upgrade): yq in /usr/lib/python2.7/site-packages
+Requirement already satisfied (use --upgrade to upgrade): xmltodict>=0.11.0 in /usr/lib/python2.7/site-packages (from yq)
+Requirement already satisfied (use --upgrade to upgrade): setuptools in /usr/lib/python2.7/site-packages (from yq)
+Requirement already satisfied (use --upgrade to upgrade): PyYAML>=3.11 in /usr/lib64/python2.7/site-packages (from yq)
+You are using pip version 8.1.2, however version 19.1.1 is available.
+You should consider upgrading via the 'pip install --upgrade pip' command.
++ oc_version=4.1
++ oc_tools_dir=/root/oc-4.1
++ oc_tools_local_file=openshift-client-4.1.tar.gz
++ oc_date=0
++ which oc
++++ oc version -o json
++++ jq -r .clientVersion.buildDate
+++ date -d 2019-05-19T21:13:58Z +%s
++ oc_date=1558300438
++ '[' '!' -f /root/oc-4.1/openshift-client-4.1.tar.gz ']'
++ '[' 1558300438 -lt 1558047075 ']'

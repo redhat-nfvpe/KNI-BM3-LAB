@@ -1,0 +1,417 @@
++ source common.sh
++++ go env
+++ eval 'GOARCH="amd64"
+GOBIN=""
+GOCACHE="/root/.cache/go-build"
+GOEXE=""
+GOFLAGS=""
+GOHOSTARCH="amd64"
+GOHOSTOS="linux"
+GOOS="linux"
+GOPATH="/root/go"
+GOPROXY=""
+GORACE=""
+GOROOT="/usr/lib/golang"
+GOTMPDIR=""
+GOTOOLDIR="/usr/lib/golang/pkg/tool/linux_amd64"
+GCCGO="gccgo"
+CC="gcc"
+CXX="g++"
+CGO_ENABLED="1"
+GOMOD=""
+CGO_CFLAGS="-g -O2"
+CGO_CPPFLAGS=""
+CGO_CXXFLAGS="-g -O2"
+CGO_FFLAGS="-g -O2"
+CGO_LDFLAGS="-g -O2"
+PKG_CONFIG="pkg-config"
+GOGCCFLAGS="-fPIC -m64 -pthread -fmessage-length=0 -fdebug-prefix-map=/tmp/go-build920233804=/tmp/go-build -gno-record-gcc-switches"'
++++ GOARCH=amd64
++++ GOBIN=
++++ GOCACHE=/root/.cache/go-build
++++ GOEXE=
++++ GOFLAGS=
++++ GOHOSTARCH=amd64
++++ GOHOSTOS=linux
++++ GOOS=linux
++++ GOPATH=/root/go
++++ GOPROXY=
++++ GORACE=
++++ GOROOT=/usr/lib/golang
++++ GOTMPDIR=
++++ GOTOOLDIR=/usr/lib/golang/pkg/tool/linux_amd64
++++ GCCGO=gccgo
++++ CC=gcc
++++ CXX=g++
++++ CGO_ENABLED=1
++++ GOMOD=
++++ CGO_CFLAGS='-g -O2'
++++ CGO_CPPFLAGS=
++++ CGO_CXXFLAGS='-g -O2'
++++ CGO_FFLAGS='-g -O2'
++++ CGO_LDFLAGS='-g -O2'
++++ PKG_CONFIG=pkg-config
++++ GOGCCFLAGS='-fPIC -m64 -pthread -fmessage-length=0 -fdebug-prefix-map=/tmp/go-build920233804=/tmp/go-build -gno-record-gcc-switches'
+++++ dirname common.sh
++++ cd .
++++ pwd
+++ SCRIPTDIR=/root/dev/dev-scripts
++++ whoami
+++ USER=root
+++ '[' -z /root/dev/kni-lab/config_example.sh ']'
+++ source /root/dev/kni-lab/config_example.sh
++++ export PRO_IF=eno2
++++ PRO_IF=eno2
++++ export MANAGE_PRO_BRIDGE=y
++++ MANAGE_PRO_BRIDGE=y
++++ export INT_IF=ens1f0
++++ INT_IF=ens1f0
++++ export MANAGE_INT_BRIDGE=n
++++ MANAGE_INT_BRIDGE=n
++++ export ROOT_DISK=/dev/sda
++++ ROOT_DISK=/dev/sda
++++ export CLUSTER_NAME=test1
++++ CLUSTER_NAME=test1
++++ export BASE_DOMAIN=kni.home
++++ BASE_DOMAIN=kni.home
++++ export MANAGE_BR_BRIDGE=n
++++ MANAGE_BR_BRIDGE=n
++++ export NODES_PLATFORM=BM
++++ NODES_PLATFORM=BM
++++ export NODES_FILE=/root/dev/kni-lab/ironic_hosts_3.json
++++ NODES_FILE=/root/dev/kni-lab/ironic_hosts_3.json
+++ ADDN_DNS=
+++ EXT_IF=
+++ PRO_IF=eno2
+++ MANAGE_BR_BRIDGE=n
+++ MANAGE_PRO_BRIDGE=y
+++ MANAGE_INT_BRIDGE=n
+++ INT_IF=ens1f0
+++ ROOT_DISK_NAME=/dev/sda
+++ FILESYSTEM=/
+++ WORKING_DIR=/opt/dev-scripts
+++ NODES_FILE=/root/dev/kni-lab/ironic_hosts_3.json
+++ NODES_PLATFORM=BM
+++ MASTER_NODES_FILE=ocp/master_nodes.json
+++ export NUM_MASTERS=3
+++ NUM_MASTERS=3
+++ export NUM_WORKERS=1
+++ NUM_WORKERS=1
+++ export VM_EXTRADISKS=false
+++ VM_EXTRADISKS=false
+++ export RHCOS_INSTALLER_IMAGE_URL=https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/ootpa/410.8.20190508.1/
+++ RHCOS_INSTALLER_IMAGE_URL=https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/ootpa/410.8.20190508.1/
+++ export RHCOS_IMAGE_URL=https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/ootpa/410.8.20190508.1/
+++ RHCOS_IMAGE_URL=https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/ootpa/410.8.20190508.1/
++++ curl https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/ootpa/410.8.20190508.1//meta.json
++++ jq -r .images.openstack.path
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  5154  100  5154    0     0   6806      0 --:--:-- --:--:-- --:--:--  6808
+++ export RHCOS_IMAGE_FILENAME_OPENSTACK_GZ=rhcos-410.8.20190508.1-openstack.qcow2
+++ RHCOS_IMAGE_FILENAME_OPENSTACK_GZ=rhcos-410.8.20190508.1-openstack.qcow2
++++ echo rhcos-410.8.20190508.1-openstack.qcow2
++++ sed -e 's/-openstack.*//'
+++ export RHCOS_IMAGE_NAME=rhcos-410.8.20190508.1
+++ RHCOS_IMAGE_NAME=rhcos-410.8.20190508.1
+++ export RHCOS_IMAGE_FILENAME_OPENSTACK=rhcos-410.8.20190508.1-openstack.qcow2
+++ RHCOS_IMAGE_FILENAME_OPENSTACK=rhcos-410.8.20190508.1-openstack.qcow2
+++ export RHCOS_IMAGE_FILENAME_COMPRESSED=rhcos-410.8.20190508.1-compressed.qcow2
+++ RHCOS_IMAGE_FILENAME_COMPRESSED=rhcos-410.8.20190508.1-compressed.qcow2
+++ export RHCOS_IMAGE_FILENAME_LATEST=rhcos-ootpa-latest.qcow2
+++ RHCOS_IMAGE_FILENAME_LATEST=rhcos-ootpa-latest.qcow2
+++ export IRONIC_IMAGE=quay.io/metal3-io/ironic
+++ IRONIC_IMAGE=quay.io/metal3-io/ironic
+++ export IRONIC_INSPECTOR_IMAGE=quay.io/metal3-io/ironic-inspector
+++ IRONIC_INSPECTOR_IMAGE=quay.io/metal3-io/ironic-inspector
+++ export IRONIC_DATA_DIR=/opt/dev-scripts/ironic
+++ IRONIC_DATA_DIR=/opt/dev-scripts/ironic
+++ export KUBECONFIG=/root/dev/dev-scripts/ocp/auth/kubeconfig
+++ KUBECONFIG=/root/dev/dev-scripts/ocp/auth/kubeconfig
+++ export 'SSH=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5'
+++ SSH='ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5'
+++ export LIBVIRT_DEFAULT_URI=qemu:///system
+++ LIBVIRT_DEFAULT_URI=qemu:///system
+++ '[' root '!=' root -a /run/user/0 == /run/user/0 ']'
+++ sudo -n uptime
++++ awk -F= '/^ID=/ { print $2 }' /etc/os-release
++++ tr -d '"'
+++ [[ ! centos =~ ^(centos|rhel)$ ]]
++++ awk -F= '/^VERSION_ID=/ { print $2 }' /etc/os-release
++++ tr -d '"'
++++ cut -f1 -d.
+++ [[ 7 -ne 7 ]]
++++ df / --output=fstype
++++ grep -v Type
+++ FSTYPE=xfs
+++ case ${FSTYPE} in
++++ xfs_info /
++++ grep -q ftype=1
+++ [[ -n '' ]]
+++ '[' 4192 = 0 ']'
+++ '[' '!' -d /opt/dev-scripts ']'
+++ sudo chown root:root /opt/dev-scripts
+++ chmod 755 /opt/dev-scripts
+++ export OPENSHIFT_INSTALLER=ocp/openshift-install
+++ OPENSHIFT_INSTALLER=ocp/openshift-install
++ source get_images.sh
+++ set -xe
+++ source common.sh
+++++ go env
++++ eval 'GOARCH="amd64"
+GOBIN=""
+GOCACHE="/root/.cache/go-build"
+GOEXE=""
+GOFLAGS=""
+GOHOSTARCH="amd64"
+GOHOSTOS="linux"
+GOOS="linux"
+GOPATH="/root/go"
+GOPROXY=""
+GORACE=""
+GOROOT="/usr/lib/golang"
+GOTMPDIR=""
+GOTOOLDIR="/usr/lib/golang/pkg/tool/linux_amd64"
+GCCGO="gccgo"
+CC="gcc"
+CXX="g++"
+CGO_ENABLED="1"
+GOMOD=""
+CGO_CFLAGS="-g -O2"
+CGO_CPPFLAGS=""
+CGO_CXXFLAGS="-g -O2"
+CGO_FFLAGS="-g -O2"
+CGO_LDFLAGS="-g -O2"
+PKG_CONFIG="pkg-config"
+GOGCCFLAGS="-fPIC -m64 -pthread -fmessage-length=0 -fdebug-prefix-map=/tmp/go-build287371013=/tmp/go-build -gno-record-gcc-switches"'
+++++ GOARCH=amd64
+++++ GOBIN=
+++++ GOCACHE=/root/.cache/go-build
+++++ GOEXE=
+++++ GOFLAGS=
+++++ GOHOSTARCH=amd64
+++++ GOHOSTOS=linux
+++++ GOOS=linux
+++++ GOPATH=/root/go
+++++ GOPROXY=
+++++ GORACE=
+++++ GOROOT=/usr/lib/golang
+++++ GOTMPDIR=
+++++ GOTOOLDIR=/usr/lib/golang/pkg/tool/linux_amd64
+++++ GCCGO=gccgo
+++++ CC=gcc
+++++ CXX=g++
+++++ CGO_ENABLED=1
+++++ GOMOD=
+++++ CGO_CFLAGS='-g -O2'
+++++ CGO_CPPFLAGS=
+++++ CGO_CXXFLAGS='-g -O2'
+++++ CGO_FFLAGS='-g -O2'
+++++ CGO_LDFLAGS='-g -O2'
+++++ PKG_CONFIG=pkg-config
+++++ GOGCCFLAGS='-fPIC -m64 -pthread -fmessage-length=0 -fdebug-prefix-map=/tmp/go-build287371013=/tmp/go-build -gno-record-gcc-switches'
++++++ dirname common.sh
+++++ cd .
+++++ pwd
++++ SCRIPTDIR=/root/dev/dev-scripts
+++++ whoami
++++ USER=root
++++ '[' -z /root/dev/kni-lab/config_example.sh ']'
++++ source /root/dev/kni-lab/config_example.sh
+++++ export PRO_IF=eno2
+++++ PRO_IF=eno2
+++++ export MANAGE_PRO_BRIDGE=y
+++++ MANAGE_PRO_BRIDGE=y
+++++ export INT_IF=ens1f0
+++++ INT_IF=ens1f0
+++++ export MANAGE_INT_BRIDGE=n
+++++ MANAGE_INT_BRIDGE=n
+++++ export ROOT_DISK=/dev/sda
+++++ ROOT_DISK=/dev/sda
+++++ export CLUSTER_NAME=test1
+++++ CLUSTER_NAME=test1
+++++ export BASE_DOMAIN=kni.home
+++++ BASE_DOMAIN=kni.home
+++++ export MANAGE_BR_BRIDGE=n
+++++ MANAGE_BR_BRIDGE=n
+++++ export NODES_PLATFORM=BM
+++++ NODES_PLATFORM=BM
+++++ export NODES_FILE=/root/dev/kni-lab/ironic_hosts_3.json
+++++ NODES_FILE=/root/dev/kni-lab/ironic_hosts_3.json
++++ ADDN_DNS=
++++ EXT_IF=
++++ PRO_IF=eno2
++++ MANAGE_BR_BRIDGE=n
++++ MANAGE_PRO_BRIDGE=y
++++ MANAGE_INT_BRIDGE=n
++++ INT_IF=ens1f0
++++ ROOT_DISK_NAME=/dev/sda
++++ FILESYSTEM=/
++++ WORKING_DIR=/opt/dev-scripts
++++ NODES_FILE=/root/dev/kni-lab/ironic_hosts_3.json
++++ NODES_PLATFORM=BM
++++ MASTER_NODES_FILE=ocp/master_nodes.json
++++ export NUM_MASTERS=3
++++ NUM_MASTERS=3
++++ export NUM_WORKERS=1
++++ NUM_WORKERS=1
++++ export VM_EXTRADISKS=false
++++ VM_EXTRADISKS=false
++++ export RHCOS_INSTALLER_IMAGE_URL=https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/ootpa/410.8.20190508.1/
++++ RHCOS_INSTALLER_IMAGE_URL=https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/ootpa/410.8.20190508.1/
++++ export RHCOS_IMAGE_URL=https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/ootpa/410.8.20190508.1/
++++ RHCOS_IMAGE_URL=https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/ootpa/410.8.20190508.1/
+++++ curl https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/ootpa/410.8.20190508.1//meta.json
+++++ jq -r .images.openstack.path
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  5154  100  5154    0     0  12055      0 --:--:-- --:--:-- --:--:-- 12070
++++ export RHCOS_IMAGE_FILENAME_OPENSTACK_GZ=rhcos-410.8.20190508.1-openstack.qcow2
++++ RHCOS_IMAGE_FILENAME_OPENSTACK_GZ=rhcos-410.8.20190508.1-openstack.qcow2
+++++ echo rhcos-410.8.20190508.1-openstack.qcow2
+++++ sed -e 's/-openstack.*//'
++++ export RHCOS_IMAGE_NAME=rhcos-410.8.20190508.1
++++ RHCOS_IMAGE_NAME=rhcos-410.8.20190508.1
++++ export RHCOS_IMAGE_FILENAME_OPENSTACK=rhcos-410.8.20190508.1-openstack.qcow2
++++ RHCOS_IMAGE_FILENAME_OPENSTACK=rhcos-410.8.20190508.1-openstack.qcow2
++++ export RHCOS_IMAGE_FILENAME_COMPRESSED=rhcos-410.8.20190508.1-compressed.qcow2
++++ RHCOS_IMAGE_FILENAME_COMPRESSED=rhcos-410.8.20190508.1-compressed.qcow2
++++ export RHCOS_IMAGE_FILENAME_LATEST=rhcos-ootpa-latest.qcow2
++++ RHCOS_IMAGE_FILENAME_LATEST=rhcos-ootpa-latest.qcow2
++++ export IRONIC_IMAGE=quay.io/metal3-io/ironic
++++ IRONIC_IMAGE=quay.io/metal3-io/ironic
++++ export IRONIC_INSPECTOR_IMAGE=quay.io/metal3-io/ironic-inspector
++++ IRONIC_INSPECTOR_IMAGE=quay.io/metal3-io/ironic-inspector
++++ export IRONIC_DATA_DIR=/opt/dev-scripts/ironic
++++ IRONIC_DATA_DIR=/opt/dev-scripts/ironic
++++ export KUBECONFIG=/root/dev/dev-scripts/ocp/auth/kubeconfig
++++ KUBECONFIG=/root/dev/dev-scripts/ocp/auth/kubeconfig
++++ export 'SSH=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5'
++++ SSH='ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5'
++++ export LIBVIRT_DEFAULT_URI=qemu:///system
++++ LIBVIRT_DEFAULT_URI=qemu:///system
++++ '[' root '!=' root -a /run/user/0 == /run/user/0 ']'
++++ sudo -n uptime
+++++ awk -F= '/^ID=/ { print $2 }' /etc/os-release
+++++ tr -d '"'
++++ [[ ! centos =~ ^(centos|rhel)$ ]]
+++++ awk -F= '/^VERSION_ID=/ { print $2 }' /etc/os-release
+++++ tr -d '"'
+++++ cut -f1 -d.
++++ [[ 7 -ne 7 ]]
+++++ df / --output=fstype
+++++ grep -v Type
++++ FSTYPE=xfs
++++ case ${FSTYPE} in
+++++ xfs_info /
+++++ grep -q ftype=1
++++ [[ -n '' ]]
++++ '[' 4192 = 0 ']'
++++ '[' '!' -d /opt/dev-scripts ']'
++++ sudo chown root:root /opt/dev-scripts
++++ chmod 755 /opt/dev-scripts
++++ export OPENSHIFT_INSTALLER=ocp/openshift-install
++++ OPENSHIFT_INSTALLER=ocp/openshift-install
+++ mkdir -p /opt/dev-scripts/ironic/html/images
+++ pushd /opt/dev-scripts/ironic/html/images
+/opt/dev-scripts/ironic/html/images ~/dev/dev-scripts
+++ '[' '!' -f rhcos-410.8.20190508.1-openstack.qcow2 ']'
+++ '[' '!' -f ironic-python-agent.initramfs ']'
+++ popd
+~/dev/dev-scripts
++ for IMAGE_VAR in IRONIC_IMAGE IRONIC_INSPECTOR_IMAGE
++ IMAGE=quay.io/metal3-io/ironic
++ [[ quay.io/metal3-io/ironic =~ :// ]]
++ sudo podman pull quay.io/metal3-io/ironic
+Trying to pull docker://quay.io/metal3-io/ironic...Getting image source signatures
+Copying blob sha256:30157d720aee90f25e8266bb816316a0b0f8287f919c50d03719e99629ea7f3a
+Copying blob sha256:978d7f2ff1976b0b847014ef9c90f9e82dbd3c902ef12289a75f0f8c7c4c8b1c
+Copying blob sha256:8ba884070f611d31cb2c42eddb691319dc9facf5e0ec67672fcfa135181ab3df
+Copying blob sha256:204673d89d81c94aaa31d141c623703b0b7d886d8b2ce082c68bac435e902bed
+Copying blob sha256:0400e2d6463eddfc8bb8301257963ec4bc75756e7a0760b95d075a9b804ad96b
+Copying blob sha256:2e107a889b8b7d906f63c8a57e85be189895c4a3900cf0add5533c6b5b441d3e
+Copying blob sha256:45b050f028dd71bfc8997c63876d880c37127efc2acb005373857b5383c48704
+Copying blob sha256:8e7d14fe1184d13138aedd5ccf2010ab1562ec57d6eb8fdaf2e32093051e54b2
+Copying blob sha256:cff87d83c96d9adcad1c02168cffa1d92acf37dd18dd35447bf46e3e8dfa37b5
+Copying blob sha256:a24926d795327f3940f8ebd43a923d3e2a5606ef0853421e41e27f63da7b2c90
+Copying blob sha256:f72f2964965d8f8aeb714ebc174b80d283bbd7d71edcabc02926665473102e9a
+Copying blob sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4
+Copying blob sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4
+Copying blob sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4
+Writing manifest to image destination
+Storing signatures
+8c3e7ad37f973405358be5540440500ab958705f7b8d8f9085ed20806084ae39
++ for IMAGE_VAR in IRONIC_IMAGE IRONIC_INSPECTOR_IMAGE
++ IMAGE=quay.io/metal3-io/ironic-inspector
++ [[ quay.io/metal3-io/ironic-inspector =~ :// ]]
++ sudo podman pull quay.io/metal3-io/ironic-inspector
+Trying to pull docker://quay.io/metal3-io/ironic-inspector...Getting image source signatures
+Copying blob sha256:e963659c0e44b4ecbd5673491625447294d9cad10ee80e5d8eb835da83881ad8
+Copying blob sha256:73fef9af9ee24fb5bd24727ac8332b33b951db42f724559028cbab9704efe2bb
+Copying blob sha256:cffaa44a03e95fc828f7f922cedbed1f622af39ca82ff626ca2452fbc0d0cc3e
+Copying blob sha256:f78cc37283d0b0a1c609c789b36090986004638ec3ae50d2ab27c98159b0c484
+Copying blob sha256:8ba884070f611d31cb2c42eddb691319dc9facf5e0ec67672fcfa135181ab3df
+Copying blob sha256:2d3b9606a86241f4b226e6a67e46dfbddf888c993fcebff730c9823106cfbf6f
+Copying blob sha256:cbe88f1b079f4e7eea91c6f2ad5bb4ea088499622c0cc6f7dae12da29a102b3d
+Copying blob sha256:01ba60570451c4a54474f43436b887a23a34067f31fa3372e33674b96ed57c1a
+Copying blob sha256:cfd9da44ef1eff0679e4b6be73c9fe91ae970fed0f27ac34e47ed758d8caede4
+Copying blob sha256:7db6c951771c530aec1c34ea36638bc99b0d4d8d1067222e32a756ddd8fb56f8
+Copying blob sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4
+Copying blob sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4
+Copying blob sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4
+Copying blob sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4
+Writing manifest to image destination
+Storing signatures
+37530e957065c61654c4ce52c7f4824f78884f7036e34f88886fa0520189a778
++ pushd /opt/dev-scripts/ironic/html/images
+/opt/dev-scripts/ironic/html/images ~/dev/dev-scripts
++ '[' '!' -e rhcos-410.8.20190508.1-compressed.qcow2 ']'
++ '[' '!' -e rhcos-410.8.20190508.1-compressed.qcow2.md5sum -o rhcos-410.8.20190508.1-compressed.qcow2 -nt rhcos-410.8.20190508.1-compressed.qcow2.md5sum ']'
++ ln -sf rhcos-410.8.20190508.1-compressed.qcow2 rhcos-ootpa-latest.qcow2
++ ln -sf rhcos-410.8.20190508.1-compressed.qcow2.md5sum rhcos-ootpa-latest.qcow2.md5sum
++ popd
+~/dev/dev-scripts
++ for name in ironic ironic-inspector dnsmasq httpd mariadb
++ sudo podman ps
++ grep -w 'ironic$'
++ sudo podman ps --all
++ grep -w 'ironic$'
++ for name in ironic ironic-inspector dnsmasq httpd mariadb
++ sudo podman ps
++ grep -w 'ironic-inspector$'
++ sudo podman ps --all
++ grep -w 'ironic-inspector$'
++ for name in ironic ironic-inspector dnsmasq httpd mariadb
++ sudo podman ps
++ grep -w 'dnsmasq$'
++ sudo podman ps --all
++ grep -w 'dnsmasq$'
++ for name in ironic ironic-inspector dnsmasq httpd mariadb
++ sudo podman ps
++ grep -w 'httpd$'
++ sudo podman ps --all
++ grep -w 'httpd$'
++ for name in ironic ironic-inspector dnsmasq httpd mariadb
++ sudo podman ps
++ grep -w 'mariadb$'
++ sudo podman ps --all
++ grep -w 'mariadb$'
++ sudo podman pod exists ironic-pod
+++ sha256sum
+++ cut -c-20
++++ date
++++ hostname
+++ echo Thu May 23 12:03:13 EDT 2019 booger
++ mariadb_password=e42df9862271e2f9d291
++ sudo podman pod create -n ironic-pod
+a994b499f840267597e02148f02151d390ebad38fbcde22ed2b59a7506e6bddc
++ sudo podman run -d --net host --privileged --name dnsmasq --pod ironic-pod -v /opt/dev-scripts/ironic:/shared --entrypoint /bin/rundnsmasq quay.io/metal3-io/ironic
+4c5534982185cafef6bac3ed785855d37c3e2d0775c71b372e1fc1fc9bbc0719
++ sudo podman run -d --net host --privileged --name httpd --pod ironic-pod -v /opt/dev-scripts/ironic:/shared --entrypoint /bin/runhttpd quay.io/metal3-io/ironic
+fbd242d26b1d0a8090aff81f27f2e47459077413bbac7673b6f388a1f23107c7
++ sudo podman run -d --net host --privileged --name mariadb --pod ironic-pod -v /opt/dev-scripts/ironic:/shared --entrypoint /bin/runmariadb --env MARIADB_PASSWORD=e42df9862271e2f9d291 quay.io/metal3-io/ironic
+49b310221f04e2d2f0947276530f27ca7e517edd78b6cb12609a48f3893cdc53
++ sudo podman run -d --net host --privileged --name ironic --pod ironic-pod --env MARIADB_PASSWORD=e42df9862271e2f9d291 -v /opt/dev-scripts/ironic:/shared quay.io/metal3-io/ironic
+ee4495adc88f974c91c7a45a5416bad4799314539012fafa5a728059c2d94ab7
++ sudo podman run -d --net host --privileged --name ironic-inspector --pod ironic-pod -v /opt/dev-scripts/ironic:/shared quay.io/metal3-io/ironic-inspector
+c7b8d5e8beab84e6a30eacaeb9b354940d8db3d597dffe54a7457a12060e1f38

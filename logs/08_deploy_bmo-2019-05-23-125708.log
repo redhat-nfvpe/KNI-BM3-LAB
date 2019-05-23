@@ -1,0 +1,77 @@
+++ go env
++ eval 'GOARCH="amd64"
+GOBIN=""
+GOCACHE="/root/.cache/go-build"
+GOEXE=""
+GOFLAGS=""
+GOHOSTARCH="amd64"
+GOHOSTOS="linux"
+GOOS="linux"
+GOPATH="/root/go"
+GOPROXY=""
+GORACE=""
+GOROOT="/usr/lib/golang"
+GOTMPDIR=""
+GOTOOLDIR="/usr/lib/golang/pkg/tool/linux_amd64"
+GCCGO="gccgo"
+CC="gcc"
+CXX="g++"
+CGO_ENABLED="1"
+GOMOD=""
+CGO_CFLAGS="-g -O2"
+CGO_CPPFLAGS=""
+CGO_CXXFLAGS="-g -O2"
+CGO_FFLAGS="-g -O2"
+CGO_LDFLAGS="-g -O2"
+PKG_CONFIG="pkg-config"
+GOGCCFLAGS="-fPIC -m64 -pthread -fmessage-length=0 -fdebug-prefix-map=/tmp/go-build654577961=/tmp/go-build -gno-record-gcc-switches"'
+++ GOARCH=amd64
+++ GOBIN=
+++ GOCACHE=/root/.cache/go-build
+++ GOEXE=
+++ GOFLAGS=
+++ GOHOSTARCH=amd64
+++ GOHOSTOS=linux
+++ GOOS=linux
+++ GOPATH=/root/go
+++ GOPROXY=
+++ GORACE=
+++ GOROOT=/usr/lib/golang
+++ GOTMPDIR=
+++ GOTOOLDIR=/usr/lib/golang/pkg/tool/linux_amd64
+++ GCCGO=gccgo
+++ CC=gcc
+++ CXX=g++
+++ CGO_ENABLED=1
+++ GOMOD=
+++ CGO_CFLAGS='-g -O2'
+++ CGO_CPPFLAGS=
+++ CGO_CXXFLAGS='-g -O2'
+++ CGO_FFLAGS='-g -O2'
+++ CGO_LDFLAGS='-g -O2'
+++ PKG_CONFIG=pkg-config
+++ GOGCCFLAGS='-fPIC -m64 -pthread -fmessage-length=0 -fdebug-prefix-map=/tmp/go-build654577961=/tmp/go-build -gno-record-gcc-switches'
++ export BMOPATH=/root/go/src/github.com/metalkube/baremetal-operator
++ BMOPATH=/root/go/src/github.com/metalkube/baremetal-operator
++ cp -r /root/go/src/github.com/metalkube/baremetal-operator/deploy ocp/.
++ sed -i 's/namespace: .*/namespace: openshift-machine-api/g' ocp/deploy/role_binding.yaml
++ sed -i 's|image: quay.io/metalkube/baremetal-operator$|image: quay.io/metalkube/baremetal-operator:metalkube|' ocp/deploy/operator.yaml
++ oc --config ocp/auth/kubeconfig apply -f ocp/deploy/service_account.yaml --namespace=openshift-machine-api
+serviceaccount/metalkube-baremetal-operator created
++ oc --config ocp/auth/kubeconfig apply -f ocp/deploy/role.yaml --namespace=openshift-machine-api
+role.rbac.authorization.k8s.io/metalkube-baremetal-operator created
++ oc --config ocp/auth/kubeconfig apply -f ocp/deploy/role_binding.yaml
+rolebinding.rbac.authorization.k8s.io/metalkube-baremetal-operator created
++ oc --config ocp/auth/kubeconfig apply -f ocp/deploy/crds/metalkube_v1alpha1_baremetalhost_crd.yaml
+customresourcedefinition.apiextensions.k8s.io/baremetalhosts.metalkube.org created
++ oc --config ocp/auth/kubeconfig apply -f ocp/deploy/operator.yaml --namespace=openshift-machine-api
+deployment.apps/metalkube-baremetal-operator created
++ oc --config ocp/auth/kubeconfig scale deployment -n openshift-machine-api machine-api-controllers --replicas=0
+deployment.extensions/machine-api-controllers scaled
+++ oc --config ocp/auth/kubeconfig get deployment -n openshift-machine-api machine-api-controllers -o json
+++ jq .spec.replicas
++ '[' '!' 0 ']'
++ echo 'Scaling up machine-api-controllers ...'
+Scaling up machine-api-controllers ...
++ oc --config ocp/auth/kubeconfig scale deployment -n openshift-machine-api machine-api-controllers --replicas=1
+deployment.extensions/machine-api-controllers scaled
