@@ -1,6 +1,6 @@
 {
-  "nodes": 
-      [{
+  "nodes": [
+    {
       "name": "openshift-master-0",
       "driver": "ipmi",
       "resource_class": "baremetal",
@@ -12,19 +12,74 @@
         "deploy_ramdisk": "http://172.22.0.1/images/ironic-python-agent.initramfs"
       },
       "ports": [
-       {
-        "address": "0c:c4:7a:db:a9:b9",
-        "pxe_enabled": true
-       },
-       {
-        "address": "0c:c4:7a:19:6f:86",
-        "physical_network": "baremetal",
-        "pxe_enabled": false
-       }
+        {
+          "address": "0c:c4:7a:db:a9:b9",
+          "pxe_enabled": true
+        },
+        {
+         "address": "0c:c4:7a:19:6f:86",
+         "physical_network": "baremetal",
+         "pxe_enabled": false
+        }
       ],
       "properties": {
         "local_gb": "50",
         "cpu_arch": "x86_64"
       }
-    }]
+    },
+    {
+      "name": "openshift-master-1",
+      "driver": "ipmi",
+      "resource_class": "baremetal",
+      "driver_info": {
+        "ipmi_username": "XXXX",
+        "ipmi_password": "XXXX",
+        "ipmi_address": "10.19.110.14",
+        "deploy_kernel": "http://172.22.0.1/images/ironic-python-agent.kernel",
+        "deploy_ramdisk": "http://172.22.0.1/images/ironic-python-agent.initramfs"
+      },
+      "ports": [
+        {
+          "address": "0c:c4:7a:db:a9:af",
+          "pxe_enabled": true
+        },
+        {
+         "address": "0c:c4:7a:8e:ec:e8",
+         "physical_network": "baremetal",
+         "pxe_enabled": false
+        }
+      ],
+      "properties": {
+        "local_gb": "50",
+        "cpu_arch": "x86_64"
+      }
+    },
+    {
+      "name": "openshift-master-2",
+      "driver": "ipmi",
+      "resource_class": "baremetal",
+      "driver_info": {
+        "ipmi_username": "XXXX",
+        "ipmi_password": "XXXX",
+        "ipmi_address": "10.19.110.18",
+        "deploy_kernel": "http://172.22.0.1/images/ironic-python-agent.kernel",
+        "deploy_ramdisk": "http://172.22.0.1/images/ironic-python-agent.initramfs"
+      },
+      "ports": [
+        {
+          "address": "0c:c4:7a:db:a9:ab",
+          "pxe_enabled": true
+        },
+        {
+         "address": "0c:c4:7a:8e:ed:c8",
+         "physical_network": "baremetal",
+         "pxe_enabled": false
+        }
+      ],
+      "properties": {
+        "local_gb": "50",
+        "cpu_arch": "x86_64"
+      }
+    }
+  ]
 }
