@@ -5,8 +5,8 @@
       "driver": "ipmi",
       "resource_class": "baremetal",
       "driver_info": {
-        "ipmi_username": "ADMIN",
-        "ipmi_password": "ADMIN",
+        "ipmi_username": "XXXx",
+        "ipmi_password": "XXXX",
         "ipmi_address": "10.19.110.6",
         "deploy_kernel": "http://172.22.0.1/images/ironic-python-agent.kernel",
         "deploy_ramdisk": "http://172.22.0.1/images/ironic-python-agent.initramfs"
