@@ -189,7 +189,7 @@ iptable_rules()
     
     #enable access to cluster through the provisioning host
     #redirect external tcp connections to port 443 to the cluster ingress VIP port 443
-    ins_del_rule "$operation" "nat" "PREROUTING -p tcp --dport 443 -j DNAT --to-destination $INGRESS_VIP:443"
+    ins_del_rule "$operation" "nat" "PREROUTING -p tcp -i $EXTERNAL_INTERFACE --dport 443 -j DNAT --to-destination $INGRESS_VIP:443"
     #change the source address of connections to the ip of the BM bridge interface
     ins_del_rule "$operation" "nat" "POSTROUTING -p tcp -d $INGRESS_VIP --dport 443 -j SNAT --to-source $BM_BRIDGE_IP"
     #allow port 443 to be forwarded
