@@ -200,6 +200,8 @@ if [ -n "$DNSCHANGED" ]; then
     sudo systemctl restart NetworkManager
 fi
 
+sudo systemctl restart dnsmasq
+
 ###-----------------###
 ### Set up tftpboot ###
 ###-----------------###
