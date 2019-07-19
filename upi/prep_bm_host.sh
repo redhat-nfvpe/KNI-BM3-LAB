@@ -164,14 +164,15 @@ sudo yum install -y git podman unzip ipmitool dnsmasq
 
 printf "\nInstalling Golang...\n\n"
 
+export GOROOT=/usr/local/go
+export GOPATH=$HOME/go/src
+export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
+
 if [[ ! -d "/usr/local/go" ]]; then
     pushd /tmp
     curl -O https://dl.google.com/go/go1.12.6.linux-amd64.tar.gz
     tar -xzf go1.12.6.linux-amd64.tar.gz
     sudo mv go /usr/local
-    export GOROOT=/usr/local/go
-    export GOPATH=$HOME/go/src
-    export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
     # TODO: Use sed instead below?
     echo "export GOROOT=/usr/local/go" >> ~/.bash_profile
     echo "export GOPATH=$HOME/go/src" >> ~/.bash_profile
@@ -199,8 +200,6 @@ fi
 if [ -n "$DNSCHANGED" ]; then
     sudo systemctl restart NetworkManager
 fi
-
-sudo systemctl restart dnsmasq
 
 ###-----------------###
 ### Set up tftpboot ###
@@ -296,24 +295,24 @@ frontend https
 backend kubeapi-main
     balance source
     mode tcp
-    server bootstrap 192.168.111.10:6443 check
-    server master-0  192.168.111.11:6443 check
+    server test1-bootstrap 192.168.111.10:6443 check
+    server test1-master-0  192.168.111.11:6443 check
 
 backend mcs-main
     balance source
     mode tcp
-    server bootstrap 192.168.111.10:22623 check
-    server master-0  192.168.111.11:22623 check
+    server test1-bootstrap 192.168.111.10:22623 check
+    server test1-master-0  192.168.111.11:22623 check
 
 backend http-main
     balance source
     mode tcp
-    server worker-0  192.168.111.50:80 check
+    server test1-worker-0  192.168.111.50:80 check
 
 backend https-main
     balance source
     mode tcp
-    server worker-0  192.168.111.50:443 check
+    server test1-worker-0  192.168.111.50:443 check
 EOF
 
 cat <<'EOF' > Dockerfile
@@ -441,9 +440,9 @@ log-facility=/var/run/dnsmasq/$BM_INTF.log
 EOF
 
 cat <<EOF > /var/run/dnsmasq2/$BM_INTF.hostsfile
-$BSTRAP_BM_MAC,192.168.111.10,bootstrap
-$MASTER_BM_MAC,192.168.111.11,master-0
-$WORKER_BM_MAC,192.168.111.50,worker-1
+$BSTRAP_BM_MAC,192.168.111.10,test1-bootstrap
+$MASTER_BM_MAC,192.168.111.11,test1-master-0
+$WORKER_BM_MAC,192.168.111.50,test1-worker-0
 EOF
 
 ###--------------------------------------###
