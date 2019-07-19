@@ -1,0 +1,14 @@
+apiVersion: kni/v1alpha1
+
+kind: KniHost
+metadata:
+  name: bootstrap
+spec:
+  online: true
+  nodeType: bootstrap
+  ipmi:
+    address: 127.0.0.1
+    credentialsName: ha-lab-ipmi-secret
+  bootMACAddress: 52:54:00:82:68:3f
+  publicIPv4: 192.168.111.10
+
