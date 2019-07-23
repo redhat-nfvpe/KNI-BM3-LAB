@@ -9,10 +9,11 @@ metadata:
     kni.io/kickstart: "http://${PROVISION_IP}:8080/assets/centos-rt-worker-kickstart.cfg"
 
 spec:
+  externallyProvisioned: true
   online: true
-  nodeType: master
-  ipmi:
-    address: 10.19.110.14
+  hardwareProfile: "worker"
+  bmc:
+    address: ipmi://10.19.110.14
     credentialsName: ha-lab-ipmi-secret
   bootMACAddress: 0c:c4:7a:8e:ec:e8
   publicIPv4: 192.168.111.51
