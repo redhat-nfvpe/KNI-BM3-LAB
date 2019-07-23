@@ -4,9 +4,9 @@ usage() {
     cat <<EOM
     Usage:
     $(basename "$0") prov|bm interface
-   
+
     prov|bm   -- prov,  generate for the provisioning network.
-                 bm, generate for the baremetall network.  
+                 bm, generate for the baremetall network.
     interface -- Interface for the provisioning network.
 EOM
     exit 0
@@ -98,7 +98,7 @@ backend http-main
     balance source
     mode tcp
     server $cluster_id-worker-0  192.168.111.50:80 check
-    server $cluster_id-worker-1  192.168.111.51:80 check    
+    server $cluster_id-worker-1  192.168.111.51:80 check
     server $cluster_id-worker-2  192.168.111.52:443 check
 
 backend https-main
@@ -109,7 +109,9 @@ backend https-main
     server $cluster_id-worker-2  192.168.111.52:443 check
 
 EOF
+}
 
+gen_build() {
 cat <<'EOF' > Dockerfile
 FROM haproxy:1.7
 COPY haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
@@ -128,7 +130,7 @@ chown -R ${HAPROXY_USER}:${HAPROXY_USER} /var/lib/${HAPROXY_USER}
 
 CMD ["haproxy", "-db", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
 EOF
-
+    
 }
 
 
