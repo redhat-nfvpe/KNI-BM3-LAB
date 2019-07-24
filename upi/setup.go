@@ -6,21 +6,21 @@ import (
 	"os"
 	"path/filepath"
 
+	yaml "github.com/ghodss/yaml"
 	machinev1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
-	yaml "gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
-	BareMetalHosts map[string]machinev1.BareMetalHost
+	BareMetalHosts map[string]*machinev1.BareMetalHost
 	InstallConfig  map[string]interface{}
-	Secrets        map[string]v1.Secret
+	Secrets        map[string]*v1.Secret
 )
 
 func init() {
-	Secrets = map[string]v1.Secret{}
-	BareMetalHosts = map[string]machinev1.BareMetalHost{}
+	Secrets = map[string]*v1.Secret{}
+	BareMetalHosts = map[string]*machinev1.BareMetalHost{}
 }
 
 func main() {
@@ -81,7 +81,7 @@ func main() {
 						return err
 					}
 
-					BareMetalHosts[bareMetalHost.ObjectMeta.Name] = bareMetalHost
+					BareMetalHosts[bareMetalHost.ObjectMeta.Name] = &bareMetalHost
 
 				case "Secret":
 					var secret v1.Secret
@@ -91,7 +91,7 @@ func main() {
 						return err
 					}
 
-					Secrets[secret.ObjectMeta.Name] = secret
+					Secrets[secret.ObjectMeta.Name] = &secret
 
 				default:
 					fmt.Printf("Warning: Unknown Kind '%s' encountered.  Skipping.\n", base.Kind)
@@ -103,10 +103,52 @@ func main() {
 	})
 
 	if err != nil {
-		fmt.Println("Error: ", err)
+		fmt.Println("Error:", err)
 	}
+
+	if err := verify(); err != nil {
+		fmt.Println("Error:", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("Verification passed.")
 }
 
-func verify() bool {
-	return true
+func verify() error {
+
+	bootstrapCount := 0
+	masterCount := 0
+
+	// Secrets need username and password
+	for name, obj := range Secrets {
+		if obj.StringData["username"] == "" || obj.StringData["password"] == "" {
+			return fmt.Errorf("Secret '%s' requires username and password StringData", name)
+		}
+	}
+
+	// All BareMetalHosts must have a credential secret
+	for name, obj := range BareMetalHosts {
+		switch obj.Spec.HardwareProfile {
+		case "bootstrap":
+			bootstrapCount++
+		case "master":
+			masterCount++
+		}
+
+		if Secrets[obj.Spec.BMC.CredentialsName] == nil {
+			return fmt.Errorf("No Secret named '%s' found for %s", obj.Spec.BMC.CredentialsName, name)
+		}
+	}
+
+	// Need 1 bootstrap
+	if bootstrapCount != 1 {
+		return fmt.Errorf("One and only one bootstrap node required")
+	}
+
+	// Need 1-3 master(s)
+	if masterCount < 1 || masterCount > 3 {
+		return fmt.Errorf("1 to 3 master nodes required")
+	}
+
+	return nil
 }
