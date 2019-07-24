@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name:  ha-lab-ipmi
-data:
+stringdata:
    username: QURNSU4=
    password: QURNSU4=
    
