@@ -1,6 +1,6 @@
-apiVersion: kni/v1alpha1
+apiVersion: metalkube.org/v1alpha1
 
-kind: KniHost
+kind: BareMetalHost
 metadata:
   name: worker-0
   annotations:
