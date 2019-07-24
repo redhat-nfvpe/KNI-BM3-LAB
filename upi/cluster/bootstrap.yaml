@@ -1,5 +1,4 @@
 apiVersion: metalkube.org/v1alpha1
-
 kind: BareMetalHost
 metadata:
   name: bootstrap
