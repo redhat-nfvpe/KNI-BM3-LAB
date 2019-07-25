@@ -1,5 +1,4 @@
 apiVersion: metalkube.org/v1alpha1
-
 kind: BareMetalHost
 metadata:
   name: bootstrap
@@ -8,7 +7,7 @@ metadata:
 spec:
   externallyProvisioned: true
   online: true
-  hardwareProfile: "bootstrap"
+  hardwareProfile: bootstrap
   bmc:
     address: ipmi://127.0.0.1
     credentialsName: ha-lab-ipmi-secret
