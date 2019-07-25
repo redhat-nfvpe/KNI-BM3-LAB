@@ -4,13 +4,10 @@ kind: BareMetalHost
 metadata:
   name: worker-0
   annotations:
+    kni.io/sdnNetworkMac: "0c:c4:7a:8e:ed:c8"
     kni.io/kernel: "assets/rhel_vmlinuz"
     kni.io/initrd: "assets/rhel_initrd.img"
     kni.io/kickstart: "http://${PROVISION_IP}:8080/assets/centos-rt-worker-kickstart.cfg"
-    kni.io/isolated_cores: "1:4-10-12"
-    kni.io/hugepage_size_default: "2G"
-    kni.io/hugepage_size: 2G
-    kni.io/hugepage_num: 4
 
 spec:
   externallyProvisioned: true
@@ -20,5 +17,4 @@ spec:
     address: ipmi://10.19.110.18
     credentialsName: ha-lab-ipmi-secret
   bootMACAddress: 0c:c4:7a:8e:ed:c8
-  publicIPv4: 192.168.111.50
 

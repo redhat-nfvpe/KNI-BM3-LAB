@@ -142,16 +142,11 @@ fi
 COMMAND=$1
 shift
 
-DNSMASQ_RUN_DIR="var/run/dnsmasq"
-DNSMASQ_ETC_DIR="etc/dnsmasq.d"
-
 case "$COMMAND" in
     prov)
-        DNSMASQ_REPO_DIR="dnsmasq/prov"
         gen_config_prov "$1"
     ;;
     bm)
-        DNSMASQ_REPO_DIR="dnsmasq/bm"
         gen_config_bm "$1"
     ;;
     *)

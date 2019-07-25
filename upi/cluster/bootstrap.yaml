@@ -3,6 +3,8 @@ apiVersion: metalkube.org/v1alpha1
 kind: BareMetalHost
 metadata:
   name: bootstrap
+  annotations:
+    kni.io/sdnNetworkMac: ""
 spec:
   externallyProvisioned: true
   online: true
@@ -11,5 +13,4 @@ spec:
     address: ipmi://127.0.0.1
     credentialsName: ha-lab-ipmi-secret
   bootMACAddress: 52:54:00:82:68:3f
-  publicIPv4: 192.168.111.10
 

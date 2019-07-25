@@ -49,6 +49,86 @@
 #     credentialsName: ha-lab-ipmi-secret
 #   bootMACAddress: 0c:c4:7a:8e:ee:0c
 
+nthhost()
+{
+    address="$1"
+    nth="$2"
+    
+    mapfile -t ips < <(nmap -n -sL "$address" 2>&1 | awk '/Nmap scan report/{print $NF}')
+    #ips=($(nmap -n -sL "$address" 2>&1 | awk '/Nmap scan report/{print $NF}'))
+    ips_len="${#ips[@]}"
+    
+    if [ "$ips_len" -eq 0 ] || [ "$nth" -gt "$ips_len" ]; then
+        echo "Invalid address: $address or offset $nth"
+        exit 1
+    fi
+    
+    echo "${ips[$nth]}"
+}
+
+PROV_IP_CIDR="172.22.0.0/24"
+PROV_IP_IPXE_URL="$(nthost $PROV_IP_CIDR 10): 8080" # 172.22.0.10
+PROV_IP_RANGE_START=$(nthhost "$PROV_IP_CIDR" 11)   # 172.22.0.11
+PROV_IP_RANGE_END=$(nthhost "$PROV_IP_CIDR" 30)     # 172.22.0.30
+PROV_ETC_DIR="bm/etc/dnsmasq.d"
+PROV_VAR_DIR="bm/var/run/dnsmasq"
+
+BM_IP_CIDR="192.168.111.0/24"
+BM_IP_RANGE_START=$(nthhost "$BM_IP_CIDR" 10)     # 192.168.111.10
+BM_IP_RANGE_END=$(nthhost "$BM_IP_CIDR" 60)       # 192.168.111.60
+BM_IP_BOOTSTRAP=$(nthhost "$BM_IP_CIDR" 10)       # 192.168.111.10
+BM_IP_MASTER_0=$(nthhost "$BM_IP_CIDR" 11)        # 192.168.111.11
+BM_IP_MASTER_1=$(nthhost "$BM_IP_CIDR" 12)        # 192.168.111.12
+BM_IP_MASTER_2=$(nthhost "$BM_IP_CIDR" 13)        # 192.168.111.13
+BM_IP_NS=$(nthhost "$BM_IP_CIDR" 1)               # 192.168.111.1
+BM_IP_WORKER_START=$(nthhost "$BM_IP_CIDR" 20)    # 192.168.111.20
+
+BM_ETC_DIR="bm/etc/dnsmasq.d"
+BM_VAR_DIR="bm/var/run/dnsmasq"
+
+# Global variables
+unset cluster_id
+unset cluster_domain
+unset prov_interface
+unset bm_terface
+unset ext_interface
+
+check_var()
+{
+    
+    if [ "$#" -ne 2 ]; then
+        echo "${FUNCNAME[0]} requires 2 arguements, varname and config_file...($(caller))"
+        exit 1
+    fi
+    
+    local varname=$1
+    local config_file=$2
+    
+    if [ -z "${!varname}" ]; then
+        echo "$varname not set in ${config_file}, must define $varname"
+        exit 1
+    fi
+}
+
+check_regular_file_exists() {
+    cfile="$1"
+    
+    if [ ! -f "$cfile" ]; then
+        echo "file does not exist: $cfile"
+        exit 1
+    fi
+}
+
+check_directory_exists() {
+    dir="$1"
+    
+    if [ ! -d "$dir" ]; then
+        echo "directory does not exist: $dir"
+        exit 1
+    fi
+}
+
+
 usage() {
     cat <<EOM
     Generate configuration files for either the provisioning interface or the
@@ -57,25 +137,29 @@ usage() {
        baremetal: dnsmasq.conf, dnsmasq.conf
 
     Usage:
-     $(basename "$0") base_dir prov interface
-     $(basename "$0") base_dir bm interface cluster_id cluster_domain
+     $(basename "$0") [common_options] prov
+        Generate config files for the provisioning interface
 
-    base_dir   -- location of the base dir for the target config files
-    prov|bm    -- prov,  generate for the provisioning network.
-                  bm, generate for the baremetall network.
-    interface  -- Interface for the provisioning network.
-    cluster_id -- Name of the specific cluster instance. test1 in test1.tt.testing
-    cluster_domain -- Domain of the cluster instance. tt.testing. in test1.tt.testing
+     $(basename "$0") [common_options] bm
+        Generate config files for the baremetal interface
+
+    common_options
+        -m manifest_dir -- Location of manifest files that describe the deployment.
+            Requires: install-config.yaml, bootstrap.yaml, master-0.yaml, [masters/workers...]
+            Defaults to ./cluster/
+        -b base_dir -- Where to put the output [defaults to ./dnsmasq/...]
+        -s [path/]prep_host_setup.src -- Location of the config file for host prep
+            Default to ./prep_host_setup.src
 EOM
     exit 0
 }
 
 gen_config_prov() {
-    intf=$1
-    out_dir=$2
+    local intf=$1
+    local out_dir=$2
     
-    etc_dir="$out_dir/prov/etc/dnsmasq.d"
-    var_dir="$out_dir/prov/var/run"
+    local etc_dir="$out_dir/$PROV_ETC_DIR"
+    local var_dir="$out_dir/$PROV_VAR_DIR"
     
     mkdir -p "$etc_dir"
     mkdir -p "$var_dir"
@@ -96,7 +180,7 @@ port=0 # do not activate nameserver
 interface=$intf
 bind-interfaces
 
-dhcp-range=172.22.0.11,172.22.0.30,30m
+dhcp-range=$PROV_IP_RANGE_START,$PROV_IP_RANGE_END,30m
 
 # do not send default gateway
 dhcp-option=3
@@ -124,7 +208,7 @@ log-facility=/var/run/dnsmasq/dnsmasq.log
 
 # iPXE - chainload to matchbox ipxe boot script
 dhcp-userclass=set:ipxe,iPXE
-dhcp-boot=tag:ipxe,http://172.22.0.10:8080/boot.ipxe
+dhcp-boot=tag:ipxe,http://$PROV_IP_IPXE_URL/boot.ipxe
 
 # Enable dnsmasq's built-in TFTP server
 enable-tftp
@@ -140,13 +224,49 @@ EOF
 }
 
 gen_hostfile_bm() {
-    cluster_id=$1
-    cluster_domain=$2
+    out_dir=$1
+    cid=$2
+    cdomain=$3
+    prep_src=$4
     
+    hostsfile="$out_dir/$BM_ETC_DIR/dnsmasq.hostsfile"
     
     # cluster_id.cluster_domain
     
     #list of master manifests
+    
+    # shellcheck source=/dev/null
+    source "$prep_src"
+    
+    if [ -z "${BSTRAP_BM_MAC}" ]; then
+        echo "BSTRAP_BM_MAC not set in ${prep_src}, must define BSTRAP_BM_MAC"
+        exit 1
+    fi
+    echo "$BSTRAP_BM_MAC,$BM_IP_BOOTSTRAP,$cid-bootstrap-0.$cdomain" | sudo tee "$hostsfile"
+    
+    if [ -z "${MASTER_0_BM_MAC}" ]; then
+        echo "MASTER_0_BM_MAC not set in ${prep_src}, must define MASTER_0_BM_MAC"
+        exit 1
+    fi
+    echo "$MASTER_0_BM_MAC,$BM_IP_MASTER_0,$cid-master-0.$cdomain" | sudo tee -a "$hostsfile"
+    
+    if [ -n "${MASTER_1_BM_MAC}" ] && [ -z "${MASTER_2_BM_MAC}" ]; then
+        echo "Both MASTER_1_BM_MAC and MASTER_2_BM_MAC must be set."
+        exit 1
+    fi
+    
+    if [ -z "${MASTER_1_BM_MAC}" ] && [ -n "${MASTER_2_BM_MAC}" ]; then
+        echo "Both MASTER_1_BM_MAC and MASTER_2_BM_MAC must be set."
+        exit 1
+    fi
+    
+    if [ -n "${MASTER_1_BM_MAC}" ] && [ -n "${MASTER_2_BM_MAC}" ]; then
+        echo "$MASTER_1_BM_MAC,$BM_IP_MASTER_1,$cid-master-1.$cdomain" | sudo tee -a "$hostsfile"
+        echo "$MASTER_2_BM_MAC,$BM_IP_MASTER_2,$cid-master-2.$cdomain" | sudo tee -a "$hostsfile"
+        
+        echo "Both MASTER_1_BM_MAC and MASTER_2_BM_MAC must be set."
+        exit 1
+    fi
     
     # loop through list
     # make sure there is a master-0[, master-1, master-2]
@@ -156,11 +276,12 @@ gen_hostfile_bm() {
     # 52:54:00:82:68:3f,192.168.111.12,cluster_id-master-1.cluster_domain
     # 52:54:00:82:68:3f,192.168.111.13,cluster_id-master-2.cluster_domain
     #
-    # 192.168.111.50,cluster_id-worker-0.cluster_domain
-    # 192.168.111.51,cluster_id-worker-1.cluster_domain
-    # ...
+     cat <<EOF >> "$hostsfile"
+    192.168.111.50,$cid-worker-0.$cdomain
+    192.168.111.51,$cid-worker-1.$cdomain
+
     # 192.168.111.59,cluster_id-worker-9.cluster_domain
-    
+EOF
 }
 
 gen_bm_help() {
@@ -180,11 +301,10 @@ gen_bm_help() {
 gen_config_bm() {
     intf="$1"
     out_dir="$2"
-    cluster_id="$3"
-    cluster_domain="$4"
+    cid="$3"
     
-    etc_dir="$out_dir/bm/etc/dnsmasq.d"
-    var_dir="$out_dir/bm/var/run/dnsmasq"
+    etc_dir="$out_dir/$BM_ETC_DIR"
+    var_dir="$out_dir/$BM_VAR_DIR"
     
     mkdir -p "$etc_dir"
     mkdir -p "$var_dir"
@@ -193,94 +313,26 @@ gen_config_bm() {
 # This config file is intended for use with a container instance of dnsmasq
 
 $(gen_bm_help)
-#-p, --port=<port>
-# Listen on <port> instead of the standard DNS port (53). Setting this to zero completely disables DNS # function, leaving only DHCP and/or TFTP.
-#port=0
+port=0
 interface=$intf
 bind-interfaces
 
 strict-order
 except-interface=lo
 
-domain=$cluster_domain,192.168.111.0/24
+domain=$cid,$BM_IP_CIDR
 
-dhcp-range=192.168.111.10,192.168.111.60,30m
+dhcp-range=$BM_IP_RANGE_START,$BM_IP_RANGE_END,30m
 #default gateway
-dhcp-option=3,192.168.111.1
+dhcp-option=3,$BM_IP_NS
 #dns server
-dhcp-option=6,192.168.111.1
+dhcp-option=6,$BM_IP_NS
 
 log-queries
 log-dhcp
 
 dhcp-no-override
 dhcp-authoritative
-
-# -> $ORIGIN tt.testing.
-
-auth-zone=bastion.$cluster_id.$cluster_domain,192.168.111.0/24
-auth-server=bastion.$cluster_id.$cluster_domain,$intf
-host-record=bastion.$cluster_id.$cluster_domain,192.168.111.1
-
-# -> $TTL 10800      ; 3 hours
-auth-ttl=10800
-
-#    owner-name  ttl  class rr    name-server         email-addr
-# -> @           3600 IN    SOA   bastion.test1.tt.testing. root.tt.testing. (
-#                                   2019010101 ; serial
-#                                   7200       ; refresh (2 hours)
-#                                   3600       ; retry (1 hour)
-#                                   1209600    ; expire (2 weeks)
-#                                   3600       ; minimum (1 hour)
-#                                   )
-#auth-soa=<serial>[,<hostmaster>[,<refresh>[,<retry>[,<expiry>]]]]
-auth-soa=2019010101,bastion.$cluster_id.$cluster_domain,7200,3600,1209600
-# -> srvce.prot.owner-name                   ttl  class rr  pri weight port target
-# -> _etcd-server-ssl._tcp.test1.tt.testing. 8640 IN    SRV 0   10     2380 etcd-0.test1.tt.testing.
-#<name>,<target>,<port>,<priority>,<weight>
-srv-host=_etcd-server-ssl._tcp.$cluster_id.$cluster_domain,etcd-0.$cluster_id.$cluster_domain,2380,0,10
-srv-host=_etcd-server-ssl._tcp.$cluster_id.$cluster_domain,etcd-1.$cluster_id.$cluster_domain,2380,10,10
-srv-host=_etcd-server-ssl._tcp.$cluster_id.$cluster_domain,etcd-2.$cluster_id.$cluster_domain,2380,10,10
-
-host-record=lb,192.168.111.1
-cname=api,lb
-cname=api-int,lb
-
-cname=apps,lb
-cname=*.apps,lb
-
-# -> api.test1.tt.testing.                        A 192.168.111.1
-#address=/api.$cluster_id.$cluster_domain/192.168.111.1
-# -> api-int.test1.tt.testing.                    A 192.168.111.1
-#address=/api-in.$cluster_id.$cluster_domain/192.168.111.1
-
-# -> test1-bootstrap.tt.testing.                  A 192.168.111.10
-host-record=$cluster_id-bootstrap,192.168.111.1
-#address=/$cluster_id-bootstrap.$cluster_domain/192.168.111.10
-
-# -> test1-master-0.tt.testing.                   A 192.168.111.11
-#address=/$cluster_id-master-0.$cluster_domain/192.168.111.11
-host-record=$cluster_id-master-0, 192.168.111.11
-# -> test1-master-1.tt.testing.                   A 192.168.111.12
-#address=/$cluster_id-master-1.$cluster_domain/192.168.111.12
-host-record=$cluster_id-master-1, 192.168.111.12
-# -> test1-master-2.tt.testing.                   A 192.168.111.13
-#address=/$cluster_id-master-2.$cluster_domain/192.168.111.13
-host-record=$cluster_id-master-2, 192.168.111.13
-
-# -> test1-worker-0.tt.testing.                   A 192.168.111.50
-#address=/$cluster_id-worker-0.$cluster_domain/192.168.111.50
-host-record=$cluster_id-worker-0, 192.168.111.50
-# -> test1-worker-1.tt.testing.                   A 192.168.111.51
-#address=/$cluster_id-worker-1.$cluster_domain/192.168.111.51
-host-record=$cluster_id-master-0, 192.168.111.51
-
-# -> etcd-0.test1.tt.testing.                     IN  CNAME test1-master-0.tt.testing.
-cname="$cluster_id"-master-0."$cluster_domain",etcd-0."$cluster_id.$cluster_domain"
-
-# -> $ORIGIN apps.test1.tt.testing.
-# -> *                                                    A                192.168.111.1
-#address=/.apps."$cluster_id.$cluster_domain"/192.168.111.1
 
 #dhcp-hostsfile=/etc/dnsmasq.d/dnsmasq.hostsfile
 dhcp-leasefile=/var/run/dnsmasq/dnsmasq.leasefile
@@ -289,18 +341,145 @@ log-facility=/var/run/dnsmasq/dnsmasq.log
 EOF
 }
 
+parse_install_config_yaml()
+{
+    ifile=$1
+    
+    check_regular_file_exists "$ifile"
+    
+    cluster_id=$(yq .metadata.name "$ifile")
+    if [ -z "$cluster_id" ]; then
+        echo "Missing cluster name!"
+        exit 1
+    fi
+    
+    cluster_domain=$(yq .baseDomain "$ifile")
+    if [ -z "$cluster_domain" ]; then
+        echo "Missing domain!"
+        exit 1
+    fi
+}
+
+parse_manifests() {
+    local manifest_dir=$1
+    
+    for file in "$manifest_dir"/*.yaml; do
+        unset sdnMac
+        echo "check $file"
+        ret=$(yq '.kind == "BareMetalHost"' "$file");
+        if [ "$ret" == "true" ];then
+            sdnMac=$(yq '.metadata.annotations."kni.io/sdnNetworkMac"' "$file")
+            echo "$sdnMac"
+        fi
+    done
+}
+#
+# The prep_bm_host.src file contains information
+# about the provisioning interface, baremetal interface
+# and external (internet facing) interface of the
+# provisioning host
+#
+parse_prep_bm_host_src() {
+    prep_src=$1
+    
+    check_regular_file_exists "$prep_src"
+    
+    # shellcheck source=/dev/null
+    source "$prep_src"
+    
+    if [ -z "${PROV_INTF}" ]; then
+        echo "PROV_INTF not set in ${prep_src}, must define PROV_INTF"
+        exit 1
+    fi
+    prov_interface=$PROV_INTF
+    
+    if [ -z "${BM_INTF}" ]; then
+        echo "BM_INTF not set in ${prep_src}, must define BM_INTF"
+        exit 1
+    fi
+    bm_interface=$BM_INTF
+}
+
 if [ "$#" -lt 3 ]; then
     usage
 fi
+
+while getopts ":hm:b:s:" opt; do
+    case ${opt} in
+        m )
+            manifest_dir=$OPTARG
+        ;;
+        b )
+            base_dir=$OPTARG
+        ;;
+        s )
+            prep_host_setup_src=$OPTARG
+        ;;
+        h )
+            usage
+            exit 0
+        ;;
+        \? )
+            echo "Invalid Option: -$OPTARG" 1>&2
+            exit 1
+        ;;
+    esac
+done
+shift $((OPTIND -1))
+
+manifest_dir=${manifest_dir:-./cluster}
+check_directory_exists "$manifest_dir"
+manifest_dir=$(realpath "$manifest_dir")
+
+base_dir=${base_dir:-./dnsmasq}
+check_directory_exists "$base_dir"
+base_dir=$(realpath "$base_dir")
+
+# get prep_host_setup.src file info
+prep_host_setup_src=${prep_host_setup_src:-./prep_bm_host.src}
+parse_prep_bm_host_src "$prep_host_setup_src"
+
+subcommand=$1; shift  # Remove 'prov|bm' from the argument list
+case "$subcommand" in
+    # Parse options to the install sub command
+    prov )
+        # Process package options
+        while getopts ":t:" opt; do
+            case ${opt} in
+                t )
+                    target=$OPTARG
+                ;;
+                \? )
+                    echo "Invalid Option: -$OPTARG" 1>&2
+                    exit 1
+                ;;
+                #        : )
+                #          echo "Invalid Option: -$OPTARG requires an argument" 1>&2
+                #          exit 1
+                #          ;;
+            esac
+        done
+        shift $((OPTIND -1))
+        
+        gen_config_prov "$prov_interface" "$base_dir"
+    ;;
+    bm )
+        # Need to get cluster_id and cluster_domain from install-config.yaml
+        parse_install_config_yaml "$manifest_dir/install-config.yaml"
+        
+        gen_config_bm "$bm_interface" "$base_dir" "$cluster_id" "$cluster_domain"
+    ;;
+    *)
+        echo "Unknown command: $command"
+        usage
+    ;;
+esac
 
 outdir=$(realpath "$1")
 shift
 
 command=$1
 shift
-
-DNSMASQ_RUN_DIR="var/run"
-DNSMASQ_ETC_DIR="etc/dnsmasq.d"
 
 case "$command" in
     prov)

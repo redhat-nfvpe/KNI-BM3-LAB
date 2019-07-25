@@ -5,5 +5,8 @@ export PROV_INTF=
 export BM_INTF=
 export EXT_INTF=
 export BSTRAP_BM_MAC=
-export MASTER_BM_MAC=
+export MASTER_0_BM_MAC=
+export MASTER_1_BM_MAC=
+export MASTER_2_BM_MAC=
 export WORKER_BM_MAC=
+
