@@ -363,15 +363,29 @@ parse_install_config_yaml()
 parse_manifests() {
     local manifest_dir=$1
     
+    printf "Parsing manifest files in %s\n" "$manifest_dir"
     for file in "$manifest_dir"/*.yaml; do
         unset sdnMac
-        echo "check $file"
-        ret=$(yq '.kind == "BareMetalHost"' "$file");
-        if [ "$ret" == "true" ];then
-            sdnMac=$(yq '.metadata.annotations."kni.io/sdnNetworkMac"' "$file")
-            echo "$sdnMac"
-        fi
+        printf "Parsing %s..." "$file"
+        objName=$(yq '.metadata.name' "$file")
+        kind=$(yq '.kind' "$file" | tr -d \");
+        printf "\tKind: %s\n" "$kind"
+        case "$kind" in
+            BareMetalHost )
+                # ret=$(yq '.kind == "BareMetalHost"' "$file")
+                printf "\t%s..." "$objName"
+                sdnMac=$(yq '.metadata.annotations."kni.io/sdnNetworkMac"' "$file")
+                #put verification code here
+                printf "%s\n" "$sdnMac"
+            ;;
+            Secret )
+                printf "\t%s...\n" "$objName"
+            ;;
+            *) echo default
+            ;;
+        esac
     done
+    
 }
 #
 # The prep_bm_host.src file contains information
