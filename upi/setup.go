@@ -112,6 +112,13 @@ func main() {
 	}
 
 	fmt.Println("Verification passed.")
+
+	// TODO: ?????
+	// if err := writePrepBmHostSrc(); err != nil {
+	// 	fmt.Println("Error:", err)
+	// 	os.Exit(1)
+	// }
+
 }
 
 func verify() error {
@@ -150,5 +157,39 @@ func verify() error {
 		return fmt.Errorf("1 to 3 master nodes required")
 	}
 
+	// Install config needs pull secret
+	if pullSecret, ok := InstallConfig["pullSecret"].(string); !ok || pullSecret == "" {
+		return fmt.Errorf("Install config requires a pull secret")
+	}
+
+	// Install config needs public ssh key
+	if sshKey, ok := InstallConfig["sshKey"].(string); !ok || sshKey == "" {
+		return fmt.Errorf("Install config requires an SSH key")
+	}
+
 	return nil
+}
+
+func writePrepBmHostSrc() error {
+	// TODO: Writing to working directory for now
+	filename, _ := filepath.Abs("./prep_bm_host.src")
+
+	// Construct file contents
+	contents := fmt.Sprintf("# This file stores environment variables required by the prep_bm_host.sh script.\n" +
+		"# Set the values here and then run prep_bm_host.sh.\n\n" +
+		"export PROV_INTF=\n" +
+		"export BM_INTF=\n" +
+		"export EXT_INTF=\n" +
+		"export BSTRAP_BM_MAC=\n" +
+		"export MASTER_BM_MAC=\n" +
+		"export WORKER_BM_MAC=\n")
+
+	// Get bytes and write to file
+	err := ioutil.WriteFile(filename, []byte(contents), 0644)
+
+	if err != nil {
+		return err
+	}
+
+	return err
 }
