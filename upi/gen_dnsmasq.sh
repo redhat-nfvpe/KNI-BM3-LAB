@@ -66,31 +66,32 @@ nthhost()
     echo "${ips[$nth]}"
 }
 
-regex_filename="^[-_A-Za-z0-9]+$"
-regex_pos_int="^[0-9]+$"
+regex_filename="^([-_A-Za-z0-9]+)$"
+regex_pos_int="^([0-9]+$)"
+regex_mac_address="^(([a-fA-F0-9]{2}:){5}[a-fA-F0-9]{2}$)"
 
 declare -A all_vars
 
 # must have at least on optional parameter for a kind
 #
 declare -A manifest_check=(
-    [BareMetalHost.req.metadata.name]="^master|worker-[012]{1}$|^bootstrap$"
-    [BareMetalHost.opt.metadata.annotations.kni.io/sdnNetworkMac]="^([a-fA-F0-9]{2}:){5}[a-fA-F0-9]{2}$"
-    [BareMetalHost.req.spec.bootMACAddress]="^([a-fA-F0-9]{2}:){5}[a-fA-F0-9]{2}$"
-    [BareMetalHost.req.spec.bmc.address]="ipmi://[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$"
+    [BareMetalHost.req.metadata.name]="^(master-[012]{1}$|worker-[012]{1}$)|^(bootstrap$)"
+    [BareMetalHost.opt.metadata.annotations.kni.io/sdnNetworkMac]="$regex_mac_address"
+    [BareMetalHost.req.spec.bootMACAddress]="$regex_mac_address"
+    [BareMetalHost.req.spec.bmc.address]="ipmi://([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$)"
     [BareMetalHost.req.spec.bmc.credentialsName]="$regex_filename"
     
     [Secret.req.metadata.name]="$regex_filename"
-    [Secret.req.stringdata.username]="$regex_filename"
-    [Secret.req.stringdata.password]="$regex_filename"
+    [Secret.req.stringdata.username]="^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$"
+    [Secret.req.stringdata.password]="^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$"
     
-    [install-config.req.baseDomain]="$regex_filename"
+    [install-config.req.baseDomain]="^([-_A-Za-z0-9.]+)$"
     [install-config.req.compute.0.replicas]="$regex_pos_int"
     [install-config.req.controlPlane.replicas]="$regex_pos_int"
     [install-config.req.metadata.name]="$regex_filename"
  #   [install-config.req.platform.none]="\s*\{\s*\}\s*"
-    [install-config.req.pullSecret]=".*"
-    [install-config.req.sshKey]=".*"
+    [install-config.req.pullSecret]="(.*)"
+    [install-config.req.sshKey]="(.*)"
 )
 
 
@@ -435,12 +436,14 @@ parse_manifests() {
                 required=false
                 [[ ${split[1]} =~ req ]] && required=true
                 
-                v=$(join_by "." "${split[@]:2}")
-                if [[ ${manifest_vars[$v]} ]]; then
-                    if [[ ! "${manifest_vars[$v]}" =~ ${manifest_check[$v]} ]]; then
-                        printf "Invalid value for \"%s\" : \"%s\" does not match %s in %s\n" "$v" "${manifest_vars[$v]}" "${manifest_check[$v]}" "$file"
+                v_vars=$(join_by "." "${split[@]:2}")
+                if [[ ${manifest_vars[$v_vars]} ]]; then
+                    if [[ ! "${manifest_vars[$v_vars]}" =~ ${manifest_check[$v]} ]]; then
+                        printf "Invalid value for \"%s\" : \"%s\" does not match %s in %s\n" "$v" "${manifest_vars[$v_vars]}" "${manifest_check[$v]}" "$file"
                         exit 1
                     fi
+                    echo " ${manifest_vars[$v_vars]} ===== ${BASH_REMATCH[1]} === ${manifest_check[$v]}"
+                    manifest_vars[$v_vars]="${BASH_REMATCH[1]}"
                 elif [[ "$required" =~ true ]]; then
                     echo "$required"
                     printf "Missing value, %s, in %s...\n" "$v" "$file"
@@ -476,21 +479,21 @@ gen_terraform() {
     [pxe_kernel_url]="assets/rhcos-4.1.0-x86_64-installer-kernel"
     [pxe_os_image_url]="http://${PROVISIONING_IP}:8080/assets/rhcos-4.1.0-x86_64-metal-bios.raw.gz"
 
-    [bootstrap_public_ipv4]="$BM_IP_BOOTSTRAP"
+    [bootstrap_public_ipv4]="${BM_IP_BOOTSTRAP}"
     [bootstrap_ipmi_host]="%bootstrap.spec.bmc.address"
     [bootstrap_ipmi_user]="%bootstrap.spec.bmc.user"
-    [bootstrap_ipmi_pass]="$BOOTSTRAP_IPMI_PASS"
-    [bootstrap_mac_address]="%bootstrap.spec.bootMacAddress"
+    [bootstrap_ipmi_pass]="${BOOTSTRAP_IPMI_PASS}"
+    [bootstrap_mac_address]="%bootstrap.spec.bootMACAddress"
 
-    [nameserver]="$BM_IP_NS"
+    [nameserver]="${BM_IP_NS}"
 
     [cluster_id]="%install-config.metadata.name"
-    [cluster_domain]="%install-config.baseDoman"
-    [cluster_domain]="%install-config.baseDoman"
-    [provisioning_interface]="$PROV_INTF"
-    [baremetal_interface]="$BM_INTF"
-    [master_count]="%install-config.master.0.replicas"
+    [cluster_domain]="%install-config.baseDomain"
+    [provisioning_interface]="${PROV_INTF}"
+    [baremetal_interface]="${BM_INTF}"
+    [master_count]="%install-config.controlPlane.replicas"
     )   
+
 
 #master_nodes = [
 #  {
@@ -502,6 +505,17 @@ gen_terraform() {
 #    mac_address: "${MASTER0_MAC}"
 #  }
 #]
+
+    for v in "${!manifest_map[@]}"; do
+        rule=${manifest_map[$v]}
+        if [[ $rule =~ ^\% ]]; then
+            rule=${rule/#%/}
+            echo "fule: $rule"
+            val=${all_vars[$rule]}
+            printf "%s = \"%s\"\n" "$v" "$val" 
+        fi
+        
+    done
 }
 #
 # The prep_bm_host.src file contains information
@@ -600,7 +614,10 @@ case "$command" in
         gen_config_bm "$bm_interface" "$base_dir" "$cluster_id" "$cluster_domain"
     ;;
     manifests)
+        parse_install_config_yaml "$manifest_dir/install-config.yaml"
         parse_manifests "$manifest_dir"
+        echo "====="
+        gen_terraform
     ;;
     *)
         echo "Unknown command: $command"

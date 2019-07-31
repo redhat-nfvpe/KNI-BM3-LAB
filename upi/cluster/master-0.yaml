@@ -5,7 +5,6 @@ metadata:
   name: master-0
   annotations:
       kni.io/sdnNetworkMac: "0c:c4:7a:8e:ee:0c"
-      foot: ball
 spec:
   externallyProvisioned: true
   online: true
@@ -15,4 +14,4 @@ spec:
     credentialsName: ha-lab-ipmi-secret
   bootMACAddress: 0c:c4:7a:8e:ee:0c
 
-
+  
