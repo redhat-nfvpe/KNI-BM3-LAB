@@ -530,8 +530,6 @@ gen_terraform_cluster() {
                     printf "\"%s\" does not exist...\n" "$ref_path"
                     exit 1
                 fi
-
-               rule="$ref_path"
             fi
             if [[ $rule =~ .*@$ ]]; then
                 mapped_val=$( echo "${all_vars[$ref_path]}" | base64 -d)
@@ -561,7 +559,24 @@ gen_terraform_cluster() {
 
     # TODO ... generate the following
 
-    
+    printf "master_nodes = [\n" | sudo tee -a "$ofile"
+    printf "  {\n" | sudo tee -a "$ofile"
+
+    num_masters="${final_vals[master_count]}"
+    for ((i=0; i<num_masters; i++)); do
+        m="master-$i"
+        printf "    name: \"%s\"\n" "${final_vals[$m.metadata.name]}" | sudo tee -a "$ofile"
+        printf "    public_ipv4: \"%s\"\n" "$(get_master_bm_ip $i)" | sudo tee -a "$ofile"
+        printf "    ipmi_host: \"%s\"\n" "${final_vals[$m.spec.bmc.address]}" | sudo tee -a "$ofile"
+        printf "    ipmi_user: \"%s\"\n" "${final_vals[$m.spec.bmc.user]}" | sudo tee -a "$ofile"
+        printf "    ipmi_pass: \"%s\"\n" "${final_vals[$m.spec.bmc.password]}" | sudo tee -a "$ofile"
+        printf "    mac_address: \"%s\"\n" "${final_vals[$m.spec.bootMACAddress]}" | sudo tee -a "$ofile"
+
+    done
+
+    printf "  }\n" | sudo tee -a "$ofile"
+    printf "]\n" | sudo tee -a "$ofile"
+
     #master_nodes = [
     #  {
     #    name: "${MASTER0_NAME}",
@@ -572,8 +587,6 @@ gen_terraform_cluster() {
     #    mac_address: "${MASTER0_MAC}"
     #  }
     #]
-    
-    echo "SDCCC = $SCRIPTDIR"
 }
 #
 # The prep_bm_host.src file contains information

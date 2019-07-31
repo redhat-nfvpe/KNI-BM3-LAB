@@ -28,6 +28,13 @@ declare -A cluster_map=(
     [provisioning_interface]="${PROV_INTF}"
     [baremetal_interface]="${BM_INTF}"
     [master_count]="%install-config.controlPlane.replicas"
+
+    [master-0.metadata.name]="%master-0.metadata.name"
+    [master-0.spec.bmc.address]="%master-0.spec.bmc.address"
+    [master-0.spec.bmc.address]="%master-0.spec.bmc.address"
+    [master-0.spec.bmc.user]="%master-0.spec.bmc.[credentialsName].stringdata.username@"
+    [master-0.spec.bmc.password]="%master-0.spec.bmc.[credentialsName].stringdata.password@"
+    [master-0.spec.bootMACAddress]="%master-0.spec.bootMACAddress"
 )
 
 export cluster_map
