@@ -1,2 +1,5 @@
 upi-rt
 dnsmasq/*
+terraform/*
+ocp/*
+matchbox/*

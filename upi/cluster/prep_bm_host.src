@@ -1,0 +1,12 @@
+# This file stores environment variables required by the prep_bm_host.sh script.
+# Set the values here and then run prep_bm_host.sh.
+
+export PROV_INTF=provisioning
+export BM_INTF=baremetal
+export EXT_INTF=eno1
+export BSTRAP_BM_MAC=
+export MASTER_0_BM_MAC=
+export MASTER_1_BM_MAC=
+export MASTER_2_BM_MAC=
+export WORKER_BM_MAC=
+

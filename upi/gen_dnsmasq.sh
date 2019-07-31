@@ -1,12 +1,17 @@
 #!/bin/bash
 
-# This script generates dnsmasq configuration files for the UPI install project.
+# This script generates configuration files for the UPI install project.
+# The first set of scripts are related to dns and haproxy.  The second 
+# set of files are for terraform
+#
 # The UPI install project employs two instances of dnsmasq.  One instance provides
 # dhcp/pxe boot for the provisioning network.  The second instance provides dhcp
 # and DNS for the baremetal network.  Dnsmasq is run as a container using podman.
 # The configuration files for both dnsmasqs are located as should below.
 #
 #── /root_path/
+#|
+#├── dnsmasq
 #│   ├── bm
 #│   │   ├── etc
 #│   │   │   └── dnsmasq.d
@@ -23,6 +28,23 @@
 #│           └── run
 #│               ├── dnsmasq.leasefile
 #│               └── dnsmasq.log
+#|
+#├── terraform
+#|   ├── cluster
+#|   │   └── terraform.tfvars
+#|   └── workers
+#|       └── terraform.tfvars
+#|
+#├── cluster
+#│   ├── bootstrap-creds.yaml
+#│   ├── bootstrap.yaml
+#│   ├── ha-lab-ipmi-creds.yaml
+#│   ├── install-config.yaml
+#│   ├── master-0.yaml
+#│   ├── prep_bm_host.src
+#│   ├── worker-0.yaml
+#│   └── worker-1.yaml
+
 #
 # This script requires a /root_path/ argument in order to set the proper locations
 # in the generated config files.  For the provisioning network, only the dnsmasq.conf
@@ -49,6 +71,11 @@
 #     credentialsName: ha-lab-ipmi-secret
 #   bootMACAddress: 0c:c4:7a:8e:ee:0c
 
+
+# 
+# This function generates an IP address given as network CIDR and an offset
+# nthhost(192.168.111.0/24,3) => 192.168.111.3
+#
 nthhost() {
     address="$1"
     nth="$2"
@@ -65,44 +92,52 @@ nthhost() {
     echo "${ips[$nth]}"
 }
 
-regex_filename="^([-_A-Za-z0-9]+)$"
-regex_pos_int="^([0-9]+$)"
-regex_mac_address="^(([a-fA-F0-9]{2}:){5}[a-fA-F0-9]{2}$)"
+get_master_bm_ip() {
+    id="$1"
 
+    if [[ ! $id =~ 0|1|2 ]]; then
+        printf "%s: Invalid master index %s" "${FUNCNAME[0]}" "$id"
+        exit 1
+    fi
+
+    res="$(nthhost "$BM_IP_CIDR" "$id")"
+
+    echo "$res"
+}
+
+# all_vars stores key / value pairs from the parsed manifest files
 declare -A all_vars
+# final_vals stores all_vars after mapping and manipulation
+# final_vals is used to generate terraform files
+declare -A final_vals
 
-# must have at least on optional parameter for a kind
-#
-declare -A manifest_check=(
-    [BareMetalHost.req.metadata.name]="^(master-[012]{1}$|worker-[012]{1}$)|^(bootstrap$)"
-    [BareMetalHost.opt.metadata.annotations.kni.io / sdnNetworkMac]="$regex_mac_address"
-    [BareMetalHost.req.spec.bootMACAddress]="$regex_mac_address"
-    [BareMetalHost.req.spec.bmc.address]="ipmi://([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$)"
-    [BareMetalHost.req.spec.bmc.credentialsName]="$regex_filename"
-    [Secret.req.metadata.name]="$regex_filename"
-    [Secret.req.stringdata.username]="^(([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$)"
-    [Secret.req.stringdata.password]="^(([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$)"
-    [install - config.req.baseDomain]="^([-_A-Za-z0-9.]+)$"
-    [install - config.req.compute.0.replicas]="$regex_pos_int"
-    [install - config.req.controlPlane.replicas]="$regex_pos_int"
-    [install - config.req.metadata.name]="$regex_filename"
-    #   [install-config.req.platform.none]="\s*\{\s*\}\s*"
-    [install - config.req.pullSecret]="(.*)"
-    [install - config.req.sshKey]="(.*)"
-)
-
+# Only change PROV_IP_CIDR and BM_IP_CIDR, the remaining vars will be generated
+# These variables should be defined in .src file.
 PROV_IP_CIDR="172.22.0.0/24"
+BM_IP_CIDR="192.168.111.0/24"
+
+# DO NOT CHANGE
+export PROV_IP_ADDR
 PROV_IP_ADDR="$(nthhost $PROV_IP_CIDR 1)"
+export PROV_IP_ADDR
 PROV_IP_IPXE_URL="$(nthhost $PROV_IP_CIDR 10): 8080" # 172.22.0.10
+export PROV_IP_IPXE_URL
 PROV_IP_RANGE_START=$(nthhost "$PROV_IP_CIDR" 11)    # 172.22.0.11
+export PROV_IP_RANGE_START
 PROV_IP_RANGE_END=$(nthhost "$PROV_IP_CIDR" 30)      # 172.22.0.30
+export PROV_IP_RANGE_END
+
 PROV_ETC_DIR="bm/etc/dnsmasq.d"
 PROV_VAR_DIR="bm/var/run/dnsmasq"
 
-BM_IP_CIDR="192.168.111.0/24"
+export BM_IP_CIDR
 BM_IP_RANGE_START=$(nthhost "$BM_IP_CIDR" 10)  # 192.168.111.10
+export BM_IP_RANGE_START
 BM_IP_RANGE_END=$(nthhost "$BM_IP_CIDR" 60)    # 192.168.111.60
+export BM_IP_RANGE_END
 BM_IP_BOOTSTRAP=$(nthhost "$BM_IP_CIDR" 10)    # 192.168.111.10
+export BM_IP_BOOTSTRAP
+
 BM_IP_MASTER_0=$(nthhost "$BM_IP_CIDR" 11)     # 192.168.111.11
 BM_IP_MASTER_1=$(nthhost "$BM_IP_CIDR" 12)     # 192.168.111.12
 BM_IP_MASTER_2=$(nthhost "$BM_IP_CIDR" 13)     # 192.168.111.13
@@ -112,51 +147,15 @@ BM_IP_WORKER_START=$(nthhost "$BM_IP_CIDR" 20) # 192.168.111.20
 BM_ETC_DIR="bm/etc/dnsmasq.d"
 BM_VAR_DIR="bm/var/run/dnsmasq"
 
-# Global variables
+# shellcheck disable=SC1091
+source "scripts/manifest_check.sh"
+# shellcheck disable=SC1091
+source "scripts/utils.sh"
 
+# Global variables
 unset prov_interface
 unset bm_interface
 unset ext_interface
-
-join_by() {
-    local IFS="$1"
-    shift
-    echo "$*"
-}
-
-check_var() {
-
-    if [ "$#" -ne 2 ]; then
-        echo "${FUNCNAME[0]} requires 2 arguements, varname and config_file...($(caller))"
-        exit 1
-    fi
-
-    local varname=$1
-    local config_file=$2
-
-    if [ -z "${!varname}" ]; then
-        echo "$varname not set in ${config_file}, must define $varname"
-        exit 1
-    fi
-}
-
-check_regular_file_exists() {
-    cfile="$1"
-
-    if [ ! -f "$cfile" ]; then
-        echo "file does not exist: $cfile"
-        exit 1
-    fi
-}
-
-check_directory_exists() {
-    dir="$1"
-
-    if [ ! -d "$dir" ]; then
-        echo "directory does not exist: $dir"
-        exit 1
-    fi
-}
 
 usage() {
     cat <<EOM
@@ -172,6 +171,9 @@ usage() {
      $(basename "$0") [common_options] bm
         Generate config files for the baremetal interface
 
+     $(basename "$0") [common_options] manifests
+        Generate config files for terraform
+
     common_options
         -m manifest_dir -- Location of manifest files that describe the deployment.
             Requires: install-config.yaml, bootstrap.yaml, master-0.yaml, [masters/workers...]
@@ -179,6 +181,7 @@ usage() {
         -b base_dir -- Where to put the output [defaults to ./dnsmasq/...]
         -s [path/]prep_host_setup.src -- Location of the config file for host prep
             Default to ./prep_host_setup.src
+        -t terraform_dir -- Location to place terraform output.  Defaults to ./terraform
 EOM
     exit 0
 }
@@ -275,7 +278,7 @@ gen_hostfile_bm() {
         echo "MASTER_0_BM_MAC not set in ${prep_src}, must define MASTER_0_BM_MAC"
         exit 1
     fi
-    echo "$MASTER_0_BM_MAC,$BM_IP_MASTER_0,$cid-master-0.$cdomain" | sudo tee -a "$hostsfile"
+    echo "$MASTER_0_BM_MAC,$(get_master_bm_ip 0),$cid-master-0.$cdomain" | sudo tee -a "$hostsfile"
 
     if [ -n "${MASTER_1_BM_MAC}" ] && [ -z "${MASTER_2_BM_MAC}" ]; then
         echo "Both MASTER_1_BM_MAC and MASTER_2_BM_MAC must be set."
@@ -474,7 +477,17 @@ parse_manifests() {
     done
 }
 
+
 gen_terraform_cluster() {
+
+    local out_dir="$1"
+
+    local cluster_dir="$out_dir/cluster"
+    mkdir -p "$cluster_dir"
+    local ofile="$out_dir/cluster/terraform.tfvars"
+
+    # shellcheck disable=SC1091  
+    source scripts/cluster_map.sh
 
     # The keys in the following associative array 
     # specify varies to be emitted in the terraform vars file.
@@ -488,29 +501,7 @@ gen_terraform_cluster() {
     #     in this instance [name].field references another manifest file
     #  5. If a rule ends with an '@', the field will be base64 decoded
     #
-    declare -A cluster_map=(
-        [bootstrap_ign_file]="./ocp/bootstrap.ign"
-        [master_ign_file]="./ocp/master.ign"
-        [matchbox_client_cert]="./matchbox/scripts/tls/client.crt"
-        [matchbox_client_key]="./matchbox/scripts/tls/client.key"
-        [matchbox_trusted_ca_cert]="./matchbox/scripts/tls/ca.crt"
-        [matchbox_http_endpoint]="http://${PROV_IP_ADDR}:8080"
-        [matchbox_rpc_endpoint]="${PROV_IP_ADDR}:8081"
-        [pxe_initrd_url]="assets/rhcos-4.1.0-x86_64-installer-initramfs.img"
-        [pxe_kernel_url]="assets/rhcos-4.1.0-x86_64-installer-kernel"
-        [pxe_os_image_url]="http://${PROV_IP_ADDR}:8080/assets/rhcos-4.1.0-x86_64-metal-bios.raw.gz"
-        [bootstrap_public_ipv4]="${BM_IP_BOOTSTRAP}"
-        [bootstrap_ipmi_host]="%bootstrap.spec.bmc.address"
-        [bootstrap_ipmi_user]="%bootstrap.spec.bmc.[credentialsName].stringdata.username@"
-        [bootstrap_ipmi_pass]="%bootstrap.spec.bmc.[credentialsName].stringdata.password@"
-        [bootstrap_mac_address]="%bootstrap.spec.bootMACAddress"
-        [nameserver]="${BM_IP_NS}"
-        [cluster_id]="%install-config.metadata.name"
-        [cluster_domain]="%install-config.baseDomain"
-        [provisioning_interface]="${PROV_INTF}"
-        [baremetal_interface]="${BM_INTF}"
-        [master_count]="%install-config.controlPlane.replicas"
-    )
+    
 
     # Generate the cluster terraform values for the fixed
     # variables
@@ -551,13 +542,26 @@ gen_terraform_cluster() {
             # static mapping   
             mapped_val="$rule"
         fi
-        printf "\t%s = \"%s\"\n" "$v" "$mapped_val"
+        #printf "\t%s = \"%s\"\n" "$v" "$mapped_val"
+        final_vals[$v]="$mapped_val"
     done
 
+    mapfile -d '' sorted < <(printf '%s\0' "${!cluster_map[@]}" | sort -z)
+
+    printf "Generating...%s]\n" "$ofile"
+
+    printf "// AUTOMATICALLY GENERATED -- Do not edit\n" | sudo tee "$ofile"
+
+    for key in "${sorted[@]}"; do
+        printf "%s = \"%s\"\n" "$key" "${final_vals[$key]}" | sudo tee -a "$ofile"
+        #printf '%s matches with %s\n' "$key" "${cluster_map[$key]}"
+    done
     # Generate the cluster terraform values for the variable number
     # of masters
 
+    # TODO ... generate the following
 
+    
     #master_nodes = [
     #  {
     #    name: "${MASTER0_NAME}",
@@ -568,7 +572,8 @@ gen_terraform_cluster() {
     #    mac_address: "${MASTER0_MAC}"
     #  }
     #]
-
+    
+    echo "SDCCC = $SCRIPTDIR"
 }
 #
 # The prep_bm_host.src file contains information
@@ -601,10 +606,13 @@ if [ "$#" -lt 1 ]; then
     usage
 fi
 
-while getopts ":hm:b:s:" opt; do
+while getopts ":hm:b:s:t:" opt; do
     case ${opt} in
     m)
         manifest_dir=$OPTARG
+        ;;
+    t)
+        terraform_dir=$OPTARG
         ;;
     b)
         base_dir=$OPTARG
@@ -627,6 +635,9 @@ shift $((OPTIND - 1))
 manifest_dir=${manifest_dir:-./cluster}
 check_directory_exists "$manifest_dir"
 manifest_dir=$(realpath "$manifest_dir")
+
+terraform_dir=${terraform_dir:-./terraform}
+terraform_dir=$(realpath "$terraform_dir")
 
 base_dir=${base_dir:-./dnsmasq}
 check_directory_exists "$base_dir"
@@ -669,7 +680,7 @@ bm)
 manifests)
     parse_manifests "$manifest_dir"
     echo "====="
-    gen_terraform_cluster
+    gen_terraform_cluster "$terraform_dir"
     ;;
 *)
     echo "Unknown command: $command"
