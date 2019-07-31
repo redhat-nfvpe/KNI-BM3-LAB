@@ -113,10 +113,9 @@ BM_ETC_DIR="bm/etc/dnsmasq.d"
 BM_VAR_DIR="bm/var/run/dnsmasq"
 
 # Global variables
-unset cluster_id
-unset cluster_domain
+
 unset prov_interface
-unset bm_terface
+unset bm_interface
 unset ext_interface
 
 join_by() {
@@ -261,8 +260,6 @@ gen_hostfile_bm() {
 
     hostsfile="$out_dir/$BM_ETC_DIR/dnsmasq.hostsfile"
 
-    # cluster_id.cluster_domain
-
     #list of master manifests
 
     # shellcheck source=/dev/null
@@ -331,7 +328,6 @@ gen_bm_help() {
 gen_config_bm() {
     intf="$1"
     out_dir="$2"
-    cid="$3"
 
     etc_dir="$out_dir/$BM_ETC_DIR"
     var_dir="$out_dir/$BM_VAR_DIR"
@@ -350,7 +346,7 @@ bind-interfaces
 strict-order
 except-interface=lo
 
-domain=$cid,$BM_IP_CIDR
+domain=${all_vars[install-config.baseDomain]},$BM_IP_CIDR
 
 dhcp-range=$BM_IP_RANGE_START,$BM_IP_RANGE_END,30m
 #default gateway
@@ -369,24 +365,6 @@ dhcp-leasefile=/var/run/dnsmasq/dnsmasq.leasefile
 log-facility=/var/run/dnsmasq/dnsmasq.log
 
 EOF
-}
-
-parse_install_config_yaml() {
-    ifile=$1
-
-    check_regular_file_exists "$ifile"
-
-    cluster_id=$(yq .metadata.name "$ifile")
-    if [ -z "$cluster_id" ]; then
-        echo "Missing cluster name!"
-        exit 1
-    fi
-
-    cluster_domain=$(yq .baseDomain "$ifile")
-    if [ -z "$cluster_domain" ]; then
-        echo "Missing domain!"
-        exit 1
-    fi
 }
 
 parse_manifests() {
@@ -508,6 +486,7 @@ gen_terraform_cluster() {
     #  4. all_vars references may contain path.[field].field
     #     i.e. bootstrap.spec.bmc.[credentialsName].password
     #     in this instance [name].field references another manifest file
+    #  5. If a rule ends with an '@', the field will be base64 decoded
     #
     declare -A cluster_map=(
         [bootstrap_ign_file]="./ocp/bootstrap.ign"
@@ -542,7 +521,9 @@ gen_terraform_cluster() {
         # Map rules that start with % indicate that the value for the
         mapped_val="unknown"
         if [[ $rule =~ ^\% ]]; then
-            rule=${rule/#%/}
+            rule=${rule/#%/}        # Remove beginning %
+            ref_path=${rule/%@/}    # Remove any trailing @ (base64)
+            # Allow for indirect references to other manifests...
             if [[ $rule =~ \[([-_A-Za-z0-9]+)\] ]]; then
                 ref_field="${BASH_REMATCH[1]}"
                 [[ $rule =~ ([^\[]+).*$ ]] && ref="${BASH_REMATCH[1]}$ref_field"
@@ -559,15 +540,15 @@ gen_terraform_cluster() {
                     exit 1
                 fi
 
-                if [[ $rule =~ .*@$ ]]; then
-                    mapped_val=$( echo "${all_vars[$ref_path]}" | base64 -d)
-                else
-                    mapped_val="${all_vars[$ref_path]}"
-                fi
-            else
-                mapped_val="${all_vars[$rule]}"
+               rule="$ref_path"
             fi
-        else    
+            if [[ $rule =~ .*@$ ]]; then
+                mapped_val=$( echo "${all_vars[$ref_path]}" | base64 -d)
+            else
+                mapped_val="${all_vars[$ref_path]}"
+            fi
+        else 
+            # static mapping   
             mapped_val="$rule"
         fi
         printf "\t%s = \"%s\"\n" "$v" "$mapped_val"
@@ -682,12 +663,10 @@ prov)
     ;;
 bm)
     # Need to get cluster_id and cluster_domain from install-config.yaml
-    parse_install_config_yaml "$manifest_dir/install-config.yaml"
-
-    gen_config_bm "$bm_interface" "$base_dir" "$cluster_id" "$cluster_domain"
+    parse_manifests "$manifest_dir"
+    gen_config_bm "$bm_interface" "$base_dir"
     ;;
 manifests)
-    parse_install_config_yaml "$manifest_dir/install-config.yaml"
     parse_manifests "$manifest_dir"
     echo "====="
     gen_terraform_cluster
