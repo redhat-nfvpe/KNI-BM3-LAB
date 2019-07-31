@@ -510,7 +510,7 @@ gen_terraform() {
         rule=${manifest_map[$v]}
         if [[ $rule =~ ^\% ]]; then
             rule=${rule/#%/}
-            echo "fule: $rule"
+            echo "rule: $rule"
             val=${all_vars[$rule]}
             printf "%s = \"%s\"\n" "$v" "$val" 
         fi
