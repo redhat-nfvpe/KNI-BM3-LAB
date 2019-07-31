@@ -10,6 +10,6 @@ spec:
   hardwareProfile: bootstrap
   bmc:
     address: ipmi://127.0.0.1
-    credentialsName: ha-lab-ipmi-secret
+    credentialsName: ha-lab-ipmi
   bootMACAddress: 52:54:00:82:68:3f
 

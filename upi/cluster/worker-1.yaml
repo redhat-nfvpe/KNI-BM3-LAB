@@ -2,7 +2,7 @@ apiVersion: metalkube.org/v1alpha1
 
 kind: BareMetalHost
 metadata:
-  name: worker-0
+  name: worker-1
   annotations:
     kni.io/sdnNetworkMac: "0c:c4:7a:8e:ec:e8"
     kni.io/kernel: "assets/rhel_vmlinuz"
@@ -15,6 +15,6 @@ spec:
   hardwareProfile: "worker"
   bmc:
     address: ipmi://10.19.110.14
-    credentialsName: ha-lab-ipmi-secret
+    credentialsName: ha-lab-ipmi
   bootMACAddress: 0c:c4:7a:8e:ec:e8
 

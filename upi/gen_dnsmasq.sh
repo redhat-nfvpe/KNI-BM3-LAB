@@ -49,20 +49,19 @@
 #     credentialsName: ha-lab-ipmi-secret
 #   bootMACAddress: 0c:c4:7a:8e:ee:0c
 
-nthhost()
-{
+nthhost() {
     address="$1"
     nth="$2"
-    
+
     mapfile -t ips < <(nmap -n -sL "$address" 2>&1 | awk '/Nmap scan report/{print $NF}')
     #ips=($(nmap -n -sL "$address" 2>&1 | awk '/Nmap scan report/{print $NF}'))
     ips_len="${#ips[@]}"
-    
+
     if [ "$ips_len" -eq 0 ] || [ "$nth" -gt "$ips_len" ]; then
         echo "Invalid address: $address or offset $nth"
         exit 1
     fi
-    
+
     echo "${ips[$nth]}"
 }
 
@@ -76,42 +75,39 @@ declare -A all_vars
 #
 declare -A manifest_check=(
     [BareMetalHost.req.metadata.name]="^(master-[012]{1}$|worker-[012]{1}$)|^(bootstrap$)"
-    [BareMetalHost.opt.metadata.annotations.kni.io/sdnNetworkMac]="$regex_mac_address"
+    [BareMetalHost.opt.metadata.annotations.kni.io / sdnNetworkMac]="$regex_mac_address"
     [BareMetalHost.req.spec.bootMACAddress]="$regex_mac_address"
     [BareMetalHost.req.spec.bmc.address]="ipmi://([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$)"
     [BareMetalHost.req.spec.bmc.credentialsName]="$regex_filename"
-    
     [Secret.req.metadata.name]="$regex_filename"
-    [Secret.req.stringdata.username]="^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$"
-    [Secret.req.stringdata.password]="^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$"
-    
-    [install-config.req.baseDomain]="^([-_A-Za-z0-9.]+)$"
-    [install-config.req.compute.0.replicas]="$regex_pos_int"
-    [install-config.req.controlPlane.replicas]="$regex_pos_int"
-    [install-config.req.metadata.name]="$regex_filename"
- #   [install-config.req.platform.none]="\s*\{\s*\}\s*"
-    [install-config.req.pullSecret]="(.*)"
-    [install-config.req.sshKey]="(.*)"
+    [Secret.req.stringdata.username]="^(([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$)"
+    [Secret.req.stringdata.password]="^(([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$)"
+    [install - config.req.baseDomain]="^([-_A-Za-z0-9.]+)$"
+    [install - config.req.compute.0.replicas]="$regex_pos_int"
+    [install - config.req.controlPlane.replicas]="$regex_pos_int"
+    [install - config.req.metadata.name]="$regex_filename"
+    #   [install-config.req.platform.none]="\s*\{\s*\}\s*"
+    [install - config.req.pullSecret]="(.*)"
+    [install - config.req.sshKey]="(.*)"
 )
-
 
 PROV_IP_CIDR="172.22.0.0/24"
 PROV_IP_ADDR="$(nthhost $PROV_IP_CIDR 1)"
 PROV_IP_IPXE_URL="$(nthhost $PROV_IP_CIDR 10): 8080" # 172.22.0.10
-PROV_IP_RANGE_START=$(nthhost "$PROV_IP_CIDR" 11)   # 172.22.0.11
-PROV_IP_RANGE_END=$(nthhost "$PROV_IP_CIDR" 30)     # 172.22.0.30
+PROV_IP_RANGE_START=$(nthhost "$PROV_IP_CIDR" 11)    # 172.22.0.11
+PROV_IP_RANGE_END=$(nthhost "$PROV_IP_CIDR" 30)      # 172.22.0.30
 PROV_ETC_DIR="bm/etc/dnsmasq.d"
 PROV_VAR_DIR="bm/var/run/dnsmasq"
 
 BM_IP_CIDR="192.168.111.0/24"
-BM_IP_RANGE_START=$(nthhost "$BM_IP_CIDR" 10)     # 192.168.111.10
-BM_IP_RANGE_END=$(nthhost "$BM_IP_CIDR" 60)       # 192.168.111.60
-BM_IP_BOOTSTRAP=$(nthhost "$BM_IP_CIDR" 10)       # 192.168.111.10
-BM_IP_MASTER_0=$(nthhost "$BM_IP_CIDR" 11)        # 192.168.111.11
-BM_IP_MASTER_1=$(nthhost "$BM_IP_CIDR" 12)        # 192.168.111.12
-BM_IP_MASTER_2=$(nthhost "$BM_IP_CIDR" 13)        # 192.168.111.13
-BM_IP_NS=$(nthhost "$BM_IP_CIDR" 1)               # 192.168.111.1
-BM_IP_WORKER_START=$(nthhost "$BM_IP_CIDR" 20)    # 192.168.111.20
+BM_IP_RANGE_START=$(nthhost "$BM_IP_CIDR" 10)  # 192.168.111.10
+BM_IP_RANGE_END=$(nthhost "$BM_IP_CIDR" 60)    # 192.168.111.60
+BM_IP_BOOTSTRAP=$(nthhost "$BM_IP_CIDR" 10)    # 192.168.111.10
+BM_IP_MASTER_0=$(nthhost "$BM_IP_CIDR" 11)     # 192.168.111.11
+BM_IP_MASTER_1=$(nthhost "$BM_IP_CIDR" 12)     # 192.168.111.12
+BM_IP_MASTER_2=$(nthhost "$BM_IP_CIDR" 13)     # 192.168.111.13
+BM_IP_NS=$(nthhost "$BM_IP_CIDR" 1)            # 192.168.111.1
+BM_IP_WORKER_START=$(nthhost "$BM_IP_CIDR" 20) # 192.168.111.20
 
 BM_ETC_DIR="bm/etc/dnsmasq.d"
 BM_VAR_DIR="bm/var/run/dnsmasq"
@@ -123,19 +119,22 @@ unset prov_interface
 unset bm_terface
 unset ext_interface
 
-join_by() { local IFS="$1"; shift; echo "$*"; }
+join_by() {
+    local IFS="$1"
+    shift
+    echo "$*"
+}
 
-check_var()
-{
-    
+check_var() {
+
     if [ "$#" -ne 2 ]; then
         echo "${FUNCNAME[0]} requires 2 arguements, varname and config_file...($(caller))"
         exit 1
     fi
-    
+
     local varname=$1
     local config_file=$2
-    
+
     if [ -z "${!varname}" ]; then
         echo "$varname not set in ${config_file}, must define $varname"
         exit 1
@@ -144,7 +143,7 @@ check_var()
 
 check_regular_file_exists() {
     cfile="$1"
-    
+
     if [ ! -f "$cfile" ]; then
         echo "file does not exist: $cfile"
         exit 1
@@ -153,13 +152,12 @@ check_regular_file_exists() {
 
 check_directory_exists() {
     dir="$1"
-    
+
     if [ ! -d "$dir" ]; then
         echo "directory does not exist: $dir"
         exit 1
     fi
 }
-
 
 usage() {
     cat <<EOM
@@ -189,14 +187,14 @@ EOM
 gen_config_prov() {
     local intf=$1
     local out_dir=$2
-    
+
     local etc_dir="$out_dir/$PROV_ETC_DIR"
     local var_dir="$out_dir/$PROV_VAR_DIR"
-    
+
     mkdir -p "$etc_dir"
     mkdir -p "$var_dir"
-    
-cat <<EOF > "$etc_dir/dnsmasq.conf"
+
+    cat <<EOF >"$etc_dir/dnsmasq.conf"
 # This config file is intended for use with a container instance of dnsmasq
 
 echo "The container should be run as follows with the generated dnsmasq.conf file"
@@ -260,46 +258,46 @@ gen_hostfile_bm() {
     cid=$2
     cdomain=$3
     prep_src=$4
-    
+
     hostsfile="$out_dir/$BM_ETC_DIR/dnsmasq.hostsfile"
-    
+
     # cluster_id.cluster_domain
-    
+
     #list of master manifests
-    
+
     # shellcheck source=/dev/null
     source "$prep_src"
-    
+
     if [ -z "${BSTRAP_BM_MAC}" ]; then
         echo "BSTRAP_BM_MAC not set in ${prep_src}, must define BSTRAP_BM_MAC"
         exit 1
     fi
     echo "$BSTRAP_BM_MAC,$BM_IP_BOOTSTRAP,$cid-bootstrap-0.$cdomain" | sudo tee "$hostsfile"
-    
+
     if [ -z "${MASTER_0_BM_MAC}" ]; then
         echo "MASTER_0_BM_MAC not set in ${prep_src}, must define MASTER_0_BM_MAC"
         exit 1
     fi
     echo "$MASTER_0_BM_MAC,$BM_IP_MASTER_0,$cid-master-0.$cdomain" | sudo tee -a "$hostsfile"
-    
+
     if [ -n "${MASTER_1_BM_MAC}" ] && [ -z "${MASTER_2_BM_MAC}" ]; then
         echo "Both MASTER_1_BM_MAC and MASTER_2_BM_MAC must be set."
         exit 1
     fi
-    
+
     if [ -z "${MASTER_1_BM_MAC}" ] && [ -n "${MASTER_2_BM_MAC}" ]; then
         echo "Both MASTER_1_BM_MAC and MASTER_2_BM_MAC must be set."
         exit 1
     fi
-    
+
     if [ -n "${MASTER_1_BM_MAC}" ] && [ -n "${MASTER_2_BM_MAC}" ]; then
         echo "$MASTER_1_BM_MAC,$BM_IP_MASTER_1,$cid-master-1.$cdomain" | sudo tee -a "$hostsfile"
         echo "$MASTER_2_BM_MAC,$BM_IP_MASTER_2,$cid-master-2.$cdomain" | sudo tee -a "$hostsfile"
-        
+
         echo "Both MASTER_1_BM_MAC and MASTER_2_BM_MAC must be set."
         exit 1
     fi
-    
+
     # loop through list
     # make sure there is a master-0[, master-1, master-2]
     #
@@ -308,7 +306,7 @@ gen_hostfile_bm() {
     # 52:54:00:82:68:3f,192.168.111.12,cluster_id-master-1.cluster_domain
     # 52:54:00:82:68:3f,192.168.111.13,cluster_id-master-2.cluster_domain
     #
-     cat <<EOF >> "$hostsfile"
+    cat <<EOF >>"$hostsfile"
     192.168.111.50,$cid-worker-0.$cdomain
     192.168.111.51,$cid-worker-1.$cdomain
 
@@ -334,14 +332,14 @@ gen_config_bm() {
     intf="$1"
     out_dir="$2"
     cid="$3"
-    
+
     etc_dir="$out_dir/$BM_ETC_DIR"
     var_dir="$out_dir/$BM_VAR_DIR"
-    
+
     mkdir -p "$etc_dir"
     mkdir -p "$var_dir"
-    
-    cat <<EOF > "$etc_dir/dnsmasq.conf"
+
+    cat <<EOF >"$etc_dir/dnsmasq.conf"
 # This config file is intended for use with a container instance of dnsmasq
 
 $(gen_bm_help)
@@ -373,18 +371,17 @@ log-facility=/var/run/dnsmasq/dnsmasq.log
 EOF
 }
 
-parse_install_config_yaml()
-{
+parse_install_config_yaml() {
     ifile=$1
-    
+
     check_regular_file_exists "$ifile"
-    
+
     cluster_id=$(yq .metadata.name "$ifile")
     if [ -z "$cluster_id" ]; then
         echo "Missing cluster name!"
         exit 1
     fi
-    
+
     cluster_domain=$(yq .baseDomain "$ifile")
     if [ -z "$cluster_domain" ]; then
         echo "Missing domain!"
@@ -394,11 +391,15 @@ parse_install_config_yaml()
 
 parse_manifests() {
     local manifest_dir=$1
-    
 
     printf "Parsing manifest files in %s\n" "$manifest_dir"
     for file in "$manifest_dir"/*.yaml; do
-        printf "\nParsing %s..." "$file"
+        printf "\nParsing %s\n" "$file"
+
+        # Parse the yaml file using yq
+        # The end result is an associative array, manifest_vars
+        # The keys are the fields in the yaml file
+        # and the values are the values in the yaml file
         # shellcheck disable=SC2016
         values=$(yq 'paths(scalars) as $p | [ ( [ $p[] | tostring ] | join(".") ) , ( getpath($p) | tojson ) ] | join(" ")' "$file")
         if [ $? -ne 0 ]; then
@@ -410,53 +411,83 @@ parse_manifests() {
         declare -A manifest_vars
         for line in "${lines[@]}"; do
             # shellcheck disable=SC2206
-            l=($line);
-            manifest_vars[${l[0]}]=${l[1]};
-            echo "manifest_vars[${l[0]}] == ${l[1]}"
-        done;
-        
+            l=($line)
+            # create the associative array
+            manifest_vars[${l[0]}]=${l[1]}
+            #echo "manifest_vars[${l[0]}] == ${l[1]}"
+        done
+
         name=""
         if [[ $file =~ install-config.yaml ]]; then
+            # the install-config file is not really a manifest and
+            # does not have a kind: tag.
             kind="install-config"
             name="install-config"
         elif [[ ${manifest_vars[kind]} ]]; then
+            # All the manifest types must have at least one entry
+            # in manifest_check.  The entry can just be an optional
+            # field.
             kind=${manifest_vars[kind]}
             name=${manifest_vars[metadata.name]}
-        else 
-            printf "kind parameter required in file %s" "$file"
+        else
+            printf "kind parameter missing OR of unrecognized type in file %s" "$file"
             exit 1
         fi
 
         recognized=false
         printf "Kind: %s\n" "$kind"
+        # Loop through all entries in manifest_check
         for v in "${!manifest_check[@]}"; do
-            IFS=. read -r -a split <<< "$v"
+            # Split the path (i.e. bootstrap.spec.hardwareProfile ) into array
+            IFS='.' read -r -a split <<<"$v"
+            # manifest_check has the kind as the first component
+            # do we recognize this kind?
             if [[ ${split[0]} =~ $kind ]]; then
                 recognized=true
                 required=false
+                # manifest_check has req/opt as second component
                 [[ ${split[1]} =~ req ]] && required=true
-                
+                # Reform path removing kind.req/opt
                 v_vars=$(join_by "." "${split[@]:2}")
+                # Now check if there is a value for this manifest_check entry
+                # in the parsed manifest
                 if [[ ${manifest_vars[$v_vars]} ]]; then
                     if [[ ! "${manifest_vars[$v_vars]}" =~ ${manifest_check[$v]} ]]; then
                         printf "Invalid value for \"%s\" : \"%s\" does not match %s in %s\n" "$v" "${manifest_vars[$v_vars]}" "${manifest_check[$v]}" "$file"
                         exit 1
                     fi
-                    echo " ${manifest_vars[$v_vars]} ===== ${BASH_REMATCH[1]} === ${manifest_check[$v]}"
+                    # echo " ${manifest_vars[$v_vars]} ===== ${BASH_REMATCH[1]} === ${manifest_check[$v]}"
+                    # The regex contains a capture group that retrieves the value to use
+                    # from the field in the yaml file
+                    # Update manifest_var with the captured value.
                     manifest_vars[$v_vars]="${BASH_REMATCH[1]}"
                 elif [[ "$required" =~ true ]]; then
-                    echo "$required"
+                    # There was no value found in the manifest and the value
+                    # was required.
                     printf "Missing value, %s, in %s...\n" "$v" "$file"
                     exit 1
                 fi
             fi
         done
+
         if [[ $recognized =~ false ]]; then
             printf "File: %s contains an unrecognized kind:\n" "$file"
         fi
+
+        # Finished the parse
+        # Take all final values and place them in the all_vars
+        # array for use by gen_terraform
         for v in "${!manifest_vars[@]}"; do
+            # Make entries unique by prepending with manifest object name
+            # Should have a uniqueness check here!
             val="$name.$v"
+            if [[ ${all_vars[$val]} ]]; then
+                printf "Duplicate Manifest value...\"%s\"\n" "$val"
+                printf "This usually occurs when two manifests have the same metadata.name...\n"
+                exit 1
+            fi
             all_vars[$val]=${manifest_vars[$v]}
+            printf "\tall_vars[%s] == \"%s\"\n" "$val" "${manifest_vars[$v]}"
         done
     done
 
@@ -465,57 +496,98 @@ parse_manifests() {
     done
 }
 
-gen_terraform() {
+gen_terraform_cluster() {
 
-    declare -A manifest_map=(
-    [bootstrap_ign_file]="./ocp/bootstrap.ign"
-    [master_ign_file]="./ocp/master.ign"
-    [matchbox_client_cert]="./matchbox/scripts/tls/client.crt"
-    [matchbox_client_key]="./matchbox/scripts/tls/client.key"
-    [matchbox_trusted_ca_cert]="./matchbox/scripts/tls/ca.crt"
-    [matchbox_http_endpoint]="http://${PROV_IP_ADDR}:8080"
-    [matchbox_rpc_endpoint]="${PROV_IP_ADDR}:8081"
-    [pxe_initrd_url]="assets/rhcos-4.1.0-x86_64-installer-initramfs.img"
-    [pxe_kernel_url]="assets/rhcos-4.1.0-x86_64-installer-kernel"
-    [pxe_os_image_url]="http://${PROVISIONING_IP}:8080/assets/rhcos-4.1.0-x86_64-metal-bios.raw.gz"
+    # The keys in the following associative array 
+    # specify varies to be emitted in the terraform vars file.
+    # the associated value contains
+    #  1. A static string value
+    #  2. A string with ENV vars that have been previously defined
+    #  3. A string prepended with '%' to indicate the final value is
+    #     located in the all_vars array
+    #  4. all_vars references may contain path.[field].field
+    #     i.e. bootstrap.spec.bmc.[credentialsName].password
+    #     in this instance [name].field references another manifest file
+    #
+    declare -A cluster_map=(
+        [bootstrap_ign_file]="./ocp/bootstrap.ign"
+        [master_ign_file]="./ocp/master.ign"
+        [matchbox_client_cert]="./matchbox/scripts/tls/client.crt"
+        [matchbox_client_key]="./matchbox/scripts/tls/client.key"
+        [matchbox_trusted_ca_cert]="./matchbox/scripts/tls/ca.crt"
+        [matchbox_http_endpoint]="http://${PROV_IP_ADDR}:8080"
+        [matchbox_rpc_endpoint]="${PROV_IP_ADDR}:8081"
+        [pxe_initrd_url]="assets/rhcos-4.1.0-x86_64-installer-initramfs.img"
+        [pxe_kernel_url]="assets/rhcos-4.1.0-x86_64-installer-kernel"
+        [pxe_os_image_url]="http://${PROV_IP_ADDR}:8080/assets/rhcos-4.1.0-x86_64-metal-bios.raw.gz"
+        [bootstrap_public_ipv4]="${BM_IP_BOOTSTRAP}"
+        [bootstrap_ipmi_host]="%bootstrap.spec.bmc.address"
+        [bootstrap_ipmi_user]="%bootstrap.spec.bmc.[credentialsName].stringdata.username@"
+        [bootstrap_ipmi_pass]="%bootstrap.spec.bmc.[credentialsName].stringdata.password@"
+        [bootstrap_mac_address]="%bootstrap.spec.bootMACAddress"
+        [nameserver]="${BM_IP_NS}"
+        [cluster_id]="%install-config.metadata.name"
+        [cluster_domain]="%install-config.baseDomain"
+        [provisioning_interface]="${PROV_INTF}"
+        [baremetal_interface]="${BM_INTF}"
+        [master_count]="%install-config.controlPlane.replicas"
+    )
 
-    [bootstrap_public_ipv4]="${BM_IP_BOOTSTRAP}"
-    [bootstrap_ipmi_host]="%bootstrap.spec.bmc.address"
-    [bootstrap_ipmi_user]="%bootstrap.spec.bmc.user"
-    [bootstrap_ipmi_pass]="${BOOTSTRAP_IPMI_PASS}"
-    [bootstrap_mac_address]="%bootstrap.spec.bootMACAddress"
-
-    [nameserver]="${BM_IP_NS}"
-
-    [cluster_id]="%install-config.metadata.name"
-    [cluster_domain]="%install-config.baseDomain"
-    [provisioning_interface]="${PROV_INTF}"
-    [baremetal_interface]="${BM_INTF}"
-    [master_count]="%install-config.controlPlane.replicas"
-    )   
-
-
-#master_nodes = [
-#  {
-#    name: "${MASTER0_NAME}",
-#    public_ipv4: "${MASTER0_IP}",
-#    ipmi_host: "${MASTER0_IPMI_HOST}",
-#    ipmi_user: "${MASTER0_IPMI_USER}",
-#    ipmi_pass: "${MASTER0_IPMI_PASS}",
-#    mac_address: "${MASTER0_MAC}"
-#  }
-#]
-
-    for v in "${!manifest_map[@]}"; do
-        rule=${manifest_map[$v]}
+    # Generate the cluster terraform values for the fixed
+    # variables
+    #
+    for v in "${!cluster_map[@]}"; do
+        rule=${cluster_map[$v]}
+        printf "Apply map-rule: \"%s\"\n" "$rule"
+        # Map rules that start with % indicate that the value for the
+        mapped_val="unknown"
         if [[ $rule =~ ^\% ]]; then
             rule=${rule/#%/}
-            echo "fule: $rule"
-            val=${all_vars[$rule]}
-            printf "%s = \"%s\"\n" "$v" "$val" 
+            if [[ $rule =~ \[([-_A-Za-z0-9]+)\] ]]; then
+                ref_field="${BASH_REMATCH[1]}"
+                [[ $rule =~ ([^\[]+).*$ ]] && ref="${BASH_REMATCH[1]}$ref_field"
+                if [[ ! ${all_vars[$ref]} ]]; then
+                    printf "Indirect ref in rule \"%s\" failed...\n" "$rule"
+                    printf "\"%s\" does not exist...\n" "$ref"
+                    exit 1
+                fi
+                ref="${all_vars[$ref]}"
+                [[ $rule =~ [^\]]+\]([^@]+) ]] && ref_path="$ref${BASH_REMATCH[1]}"
+                if [[ ! ${all_vars[$ref_path]} ]]; then
+                    printf "Indirect ref in rule \"%s\" failed...\n" "$rule"
+                    printf "\"%s\" does not exist...\n" "$ref_path"
+                    exit 1
+                fi
+
+                if [[ $rule =~ .*@$ ]]; then
+                    mapped_val=$( echo "${all_vars[$ref_path]}" | base64 -d)
+                else
+                    mapped_val="${all_vars[$ref_path]}"
+                fi
+            else
+                mapped_val="${all_vars[$rule]}"
+            fi
+        else    
+            mapped_val="$rule"
         fi
-        
+        printf "\t%s = \"%s\"\n" "$v" "$mapped_val"
     done
+
+    # Generate the cluster terraform values for the variable number
+    # of masters
+
+
+    #master_nodes = [
+    #  {
+    #    name: "${MASTER0_NAME}",
+    #    public_ipv4: "${MASTER0_IP}",
+    #    ipmi_host: "${MASTER0_IPMI_HOST}",
+    #    ipmi_user: "${MASTER0_IPMI_USER}",
+    #    ipmi_pass: "${MASTER0_IPMI_PASS}",
+    #    mac_address: "${MASTER0_MAC}"
+    #  }
+    #]
+
 }
 #
 # The prep_bm_host.src file contains information
@@ -525,18 +597,18 @@ gen_terraform() {
 #
 parse_prep_bm_host_src() {
     prep_src=$1
-    
+
     check_regular_file_exists "$prep_src"
-    
+
     # shellcheck source=/dev/null
     source "$prep_src"
-    
+
     if [ -z "${PROV_INTF}" ]; then
         echo "PROV_INTF not set in ${prep_src}, must define PROV_INTF"
         exit 1
     fi
     prov_interface=$PROV_INTF
-    
+
     if [ -z "${BM_INTF}" ]; then
         echo "BM_INTF not set in ${prep_src}, must define BM_INTF"
         exit 1
@@ -550,26 +622,26 @@ fi
 
 while getopts ":hm:b:s:" opt; do
     case ${opt} in
-        m )
-            manifest_dir=$OPTARG
+    m)
+        manifest_dir=$OPTARG
         ;;
-        b )
-            base_dir=$OPTARG
+    b)
+        base_dir=$OPTARG
         ;;
-        s )
-            prep_host_setup_src=$OPTARG
+    s)
+        prep_host_setup_src=$OPTARG
         ;;
-        h )
-            usage
-            exit 0
+    h)
+        usage
+        exit 0
         ;;
-        \? )
-            echo "Invalid Option: -$OPTARG" 1>&2
-            exit 1
+    \?)
+        echo "Invalid Option: -$OPTARG" 1>&2
+        exit 1
         ;;
     esac
 done
-shift $((OPTIND -1))
+shift $((OPTIND - 1))
 
 manifest_dir=${manifest_dir:-./cluster}
 check_directory_exists "$manifest_dir"
@@ -583,47 +655,45 @@ base_dir=$(realpath "$base_dir")
 prep_host_setup_src=${prep_host_setup_src:-$manifest_dir/prep_bm_host.src}
 parse_prep_bm_host_src "$prep_host_setup_src"
 
-command=$1; shift  # Remove 'prov|bm' from the argument list
+command=$1
+shift # Remove 'prov|bm' from the argument list
 case "$command" in
-    # Parse options to the install sub command
-    prov )
-        # Process package options
-        while getopts ":t:" opt; do
-            case ${opt} in
-                t )
-                    target=$OPTARG
-                ;;
-                \? )
-                    echo "Invalid Option: -$OPTARG" 1>&2
-                    exit 1
-                ;;
-                #        : )
-                #          echo "Invalid Option: -$OPTARG requires an argument" 1>&2
-                #          exit 1
-                #          ;;
-            esac
-        done
-        shift $((OPTIND -1))
-        
-        gen_config_prov "$prov_interface" "$base_dir"
+# Parse options to the install sub command
+prov)
+    # Process package options
+    while getopts ":t:" opt; do
+        case ${opt} in
+        t)
+            target=$OPTARG
+            ;;
+        \?)
+            echo "Invalid Option: -$OPTARG" 1>&2
+            exit 1
+            ;;
+            #        : )
+            #          echo "Invalid Option: -$OPTARG requires an argument" 1>&2
+            #          exit 1
+            #          ;;
+        esac
+    done
+    shift $((OPTIND - 1))
+
+    gen_config_prov "$prov_interface" "$base_dir"
     ;;
-    bm )
-        # Need to get cluster_id and cluster_domain from install-config.yaml
-        parse_install_config_yaml "$manifest_dir/install-config.yaml"
-        
-        gen_config_bm "$bm_interface" "$base_dir" "$cluster_id" "$cluster_domain"
+bm)
+    # Need to get cluster_id and cluster_domain from install-config.yaml
+    parse_install_config_yaml "$manifest_dir/install-config.yaml"
+
+    gen_config_bm "$bm_interface" "$base_dir" "$cluster_id" "$cluster_domain"
     ;;
-    manifests)
-        parse_install_config_yaml "$manifest_dir/install-config.yaml"
-        parse_manifests "$manifest_dir"
-        echo "====="
-        gen_terraform
+manifests)
+    parse_install_config_yaml "$manifest_dir/install-config.yaml"
+    parse_manifests "$manifest_dir"
+    echo "====="
+    gen_terraform_cluster
     ;;
-    *)
-        echo "Unknown command: $command"
-        usage
+*)
+    echo "Unknown command: $command"
+    usage
     ;;
 esac
-
-
-

@@ -11,7 +11,7 @@ spec:
   hardwareProfile: "master"
   bmc:
     address: ipmi://10.19.110.16
-    credentialsName: ha-lab-ipmi-secret
+    credentialsName: ha-lab-ipmi
   bootMACAddress: 0c:c4:7a:8e:ee:0c
 
   
