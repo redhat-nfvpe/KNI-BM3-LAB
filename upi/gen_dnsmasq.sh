@@ -66,8 +66,37 @@ nthhost()
     echo "${ips[$nth]}"
 }
 
+regex_filename="^[-_A-Za-z0-9]+$"
+regex_pos_int="^[0-9]+$"
+
+declare -A all_vars
+
+# must have at least on optional parameter for a kind
+#
+declare -A manifest_check=(
+    [BareMetalHost.req.metadata.name]="^master|worker-[012]{1}$|^bootstrap$"
+    [BareMetalHost.opt.metadata.annotations.kni.io/sdnNetworkMac]="^([a-fA-F0-9]{2}:){5}[a-fA-F0-9]{2}$"
+    [BareMetalHost.req.spec.bootMACAddress]="^([a-fA-F0-9]{2}:){5}[a-fA-F0-9]{2}$"
+    [BareMetalHost.req.spec.bmc.address]="ipmi://[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$"
+    [BareMetalHost.req.spec.bmc.credentialsName]="$regex_filename"
+    
+    [Secret.req.metadata.name]="$regex_filename"
+    [Secret.req.stringdata.username]="$regex_filename"
+    [Secret.req.stringdata.password]="$regex_filename"
+    
+    [install-config.req.baseDomain]="$regex_filename"
+    [install-config.req.compute.0.replicas]="$regex_pos_int"
+    [install-config.req.controlPlane.replicas]="$regex_pos_int"
+    [install-config.req.metadata.name]="$regex_filename"
+ #   [install-config.req.platform.none]="\s*\{\s*\}\s*"
+    [install-config.req.pullSecret]=".*"
+    [install-config.req.sshKey]=".*"
+)
+
+
 PROV_IP_CIDR="172.22.0.0/24"
-PROV_IP_IPXE_URL="$(nthost $PROV_IP_CIDR 10): 8080" # 172.22.0.10
+PROV_IP_ADDR="$(nthhost $PROV_IP_CIDR 1)"
+PROV_IP_IPXE_URL="$(nthhost $PROV_IP_CIDR 10): 8080" # 172.22.0.10
 PROV_IP_RANGE_START=$(nthhost "$PROV_IP_CIDR" 11)   # 172.22.0.11
 PROV_IP_RANGE_END=$(nthhost "$PROV_IP_CIDR" 30)     # 172.22.0.30
 PROV_ETC_DIR="bm/etc/dnsmasq.d"
@@ -92,6 +121,8 @@ unset cluster_domain
 unset prov_interface
 unset bm_terface
 unset ext_interface
+
+join_by() { local IFS="$1"; shift; echo "$*"; }
 
 check_var()
 {
@@ -363,29 +394,114 @@ parse_install_config_yaml()
 parse_manifests() {
     local manifest_dir=$1
     
+
     printf "Parsing manifest files in %s\n" "$manifest_dir"
     for file in "$manifest_dir"/*.yaml; do
-        unset sdnMac
-        printf "Parsing %s..." "$file"
-        objName=$(yq '.metadata.name' "$file")
-        kind=$(yq '.kind' "$file" | tr -d \");
-        printf "\tKind: %s\n" "$kind"
-        case "$kind" in
-            BareMetalHost )
-                # ret=$(yq '.kind == "BareMetalHost"' "$file")
-                printf "\t%s..." "$objName"
-                sdnMac=$(yq '.metadata.annotations."kni.io/sdnNetworkMac"' "$file")
-                #put verification code here
-                printf "%s\n" "$sdnMac"
-            ;;
-            Secret )
-                printf "\t%s...\n" "$objName"
-            ;;
-            *) echo default
-            ;;
-        esac
+        printf "\nParsing %s..." "$file"
+        # shellcheck disable=SC2016
+        values=$(yq 'paths(scalars) as $p | [ ( [ $p[] | tostring ] | join(".") ) , ( getpath($p) | tojson ) ] | join(" ")' "$file")
+        if [ $? -ne 0 ]; then
+            printf "Error during parsing..."
+            exit 1
+        fi
+        mapfile -t lines < <(echo "$values" | sed -e 's/^"//' -e 's/"$//' -e 's/\\"//g')
+        unset manifest_vars
+        declare -A manifest_vars
+        for line in "${lines[@]}"; do
+            # shellcheck disable=SC2206
+            l=($line);
+            manifest_vars[${l[0]}]=${l[1]};
+            echo "manifest_vars[${l[0]}] == ${l[1]}"
+        done;
+        
+        name=""
+        if [[ $file =~ install-config.yaml ]]; then
+            kind="install-config"
+            name="install-config"
+        elif [[ ${manifest_vars[kind]} ]]; then
+            kind=${manifest_vars[kind]}
+            name=${manifest_vars[metadata.name]}
+        else 
+            printf "kind parameter required in file %s" "$file"
+            exit 1
+        fi
+
+        recognized=false
+        printf "Kind: %s\n" "$kind"
+        for v in "${!manifest_check[@]}"; do
+            IFS=. read -r -a split <<< "$v"
+            if [[ ${split[0]} =~ $kind ]]; then
+                recognized=true
+                required=false
+                [[ ${split[1]} =~ req ]] && required=true
+                
+                v=$(join_by "." "${split[@]:2}")
+                if [[ ${manifest_vars[$v]} ]]; then
+                    if [[ ! "${manifest_vars[$v]}" =~ ${manifest_check[$v]} ]]; then
+                        printf "Invalid value for \"%s\" : \"%s\" does not match %s in %s\n" "$v" "${manifest_vars[$v]}" "${manifest_check[$v]}" "$file"
+                        exit 1
+                    fi
+                elif [[ "$required" =~ true ]]; then
+                    echo "$required"
+                    printf "Missing value, %s, in %s...\n" "$v" "$file"
+                    exit 1
+                fi
+            fi
+        done
+        if [[ $recognized =~ false ]]; then
+            printf "File: %s contains an unrecognized kind:\n" "$file"
+        fi
+        for v in "${!manifest_vars[@]}"; do
+            val="$name.$v"
+            all_vars[$val]=${manifest_vars[$v]}
+        done
     done
-    
+
+    for v in "${!all_vars[@]}"; do
+        echo "$v : ${all_vars[$v]}"
+    done
+}
+
+gen_terraform() {
+
+    declare -A manifest_map=(
+    [bootstrap_ign_file]="./ocp/bootstrap.ign"
+    [master_ign_file]="./ocp/master.ign"
+    [matchbox_client_cert]="./matchbox/scripts/tls/client.crt"
+    [matchbox_client_key]="./matchbox/scripts/tls/client.key"
+    [matchbox_trusted_ca_cert]="./matchbox/scripts/tls/ca.crt"
+    [matchbox_http_endpoint]="http://${PROV_IP_ADDR}:8080"
+    [matchbox_rpc_endpoint]="${PROV_IP_ADDR}:8081"
+    [pxe_initrd_url]="assets/rhcos-4.1.0-x86_64-installer-initramfs.img"
+    [pxe_kernel_url]="assets/rhcos-4.1.0-x86_64-installer-kernel"
+    [pxe_os_image_url]="http://${PROVISIONING_IP}:8080/assets/rhcos-4.1.0-x86_64-metal-bios.raw.gz"
+
+    [bootstrap_public_ipv4]="$BM_IP_BOOTSTRAP"
+    [bootstrap_ipmi_host]="%bootstrap.spec.bmc.address"
+    [bootstrap_ipmi_user]="%bootstrap.spec.bmc.user"
+    [bootstrap_ipmi_pass]="$BOOTSTRAP_IPMI_PASS"
+    [bootstrap_mac_address]="%bootstrap.spec.bootMacAddress"
+
+    [nameserver]="$BM_IP_NS"
+
+    [cluster_id]="%install-config.metadata.name"
+    [cluster_domain]="%install-config.baseDoman"
+    [cluster_domain]="%install-config.baseDoman"
+    [provisioning_interface]="$PROV_INTF"
+    [baremetal_interface]="$BM_INTF"
+    [master_count]="%install-config.master.0.replicas"
+    )   
+
+#master_nodes = [
+#  {
+#    name: "${MASTER0_NAME}",
+#    public_ipv4: "${MASTER0_IP}",
+#    ipmi_host: "${MASTER0_IPMI_HOST}",
+#    ipmi_user: "${MASTER0_IPMI_USER}",
+#    ipmi_pass: "${MASTER0_IPMI_PASS}",
+#    mac_address: "${MASTER0_MAC}"
+#  }
+#]
 }
 #
 # The prep_bm_host.src file contains information
@@ -414,7 +530,7 @@ parse_prep_bm_host_src() {
     bm_interface=$BM_INTF
 }
 
-if [ "$#" -lt 3 ]; then
+if [ "$#" -lt 1 ]; then
     usage
 fi
 
@@ -450,11 +566,11 @@ check_directory_exists "$base_dir"
 base_dir=$(realpath "$base_dir")
 
 # get prep_host_setup.src file info
-prep_host_setup_src=${prep_host_setup_src:-./prep_bm_host.src}
+prep_host_setup_src=${prep_host_setup_src:-$manifest_dir/prep_bm_host.src}
 parse_prep_bm_host_src "$prep_host_setup_src"
 
-subcommand=$1; shift  # Remove 'prov|bm' from the argument list
-case "$subcommand" in
+command=$1; shift  # Remove 'prov|bm' from the argument list
+case "$command" in
     # Parse options to the install sub command
     prov )
         # Process package options
@@ -483,40 +599,14 @@ case "$subcommand" in
         
         gen_config_bm "$bm_interface" "$base_dir" "$cluster_id" "$cluster_domain"
     ;;
-    *)
-        echo "Unknown command: $command"
-        usage
-    ;;
-esac
-
-outdir=$(realpath "$1")
-shift
-
-command=$1
-shift
-
-case "$command" in
-    prov)
-        if [ "$#" -ne 1 ]; then
-            usage
-        fi
-        
-        intf="$1"
-        gen_config_prov "$intf" "$outdir"
-    ;;
-    bm)
-        if [ "$#" -ne 3 ]; then
-            usage
-        fi
-        
-        intf="$1"
-        cluster_id="$2"
-        cluster_domain="$3"
-        gen_config_bm "$intf" "$outdir" "$cluster_id" "$cluster_domain"
+    manifests)
+        parse_manifests "$manifest_dir"
     ;;
     *)
         echo "Unknown command: $command"
         usage
     ;;
 esac
+
+
 
