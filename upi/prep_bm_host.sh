@@ -2,6 +2,26 @@
 
 #set -e
 
+# 
+# This function generates an IP address given as network CIDR and an offset
+# nthhost(192.168.111.0/24,3) => 192.168.111.3
+#
+nthhost() {
+    address="$1"
+    nth="$2"
+
+    mapfile -t ips < <(nmap -n -sL "$address" 2>&1 | awk '/Nmap scan report/{print $NF}')
+    #ips=($(nmap -n -sL "$address" 2>&1 | awk '/Nmap scan report/{print $NF}'))
+    ips_len="${#ips[@]}"
+
+    if [ "$ips_len" -eq 0 ] || [ "$nth" -gt "$ips_len" ]; then
+        echo "Invalid address: $address or offset $nth"
+        exit 1
+    fi
+
+    echo "${ips[$nth]}"
+}
+
 ###------------------------------------------------###
 ### Need interface input from user via environment ###
 ###------------------------------------------------###
@@ -20,11 +40,26 @@ for i in PROV_INTF BM_INTF EXT_INTF BSTRAP_BM_MAC MASTER_BM_MAC WORKER_BM_MAC; d
     fi
 done
 
-###----------------------------------###
-### Configure provisioning interface ###
-###----------------------------------###
+###---------------------------------------------###
+### Configure provisioning interface and bridge ###
+###---------------------------------------------###
 
-printf "\nConfiguring provisioning interface ($PROV_INTF)...\n\n"
+printf "\nConfiguring provisioning interface ($PROV_INTF) and bridge ($PROV_BRIDGE)...\n\n"
+
+cat <<EOF > /etc/sysconfig/network-scripts/ifcfg-$PROV_BRIDGE
+TYPE=Bridge
+PROXY_METHOD=none
+BROWSER_ONLY=no
+BOOTPROTO=static
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+NAME=$PROV_BRIDGE
+DEVICE=$PROV_BRIDGE
+ONBOOT=yes
+IPADDR=$(nthhost $PROV_IP_CIDR 10)
+NETMASK=255.255.255.0
+ZONE=public
+EOF
 
 cat <<EOF > /etc/sysconfig/network-scripts/ifcfg-$PROV_INTF
 TYPE=Ethernet
@@ -36,9 +71,11 @@ IPV4_FAILURE_FATAL=no
 NAME=$PROV_INTF
 DEVICE=$PROV_INTF
 ONBOOT=yes
-IPADDR=172.22.0.10
-NETMASK=255.255.255.0
+BRIDGE=$PROV_BRIDGE
 EOF
+
+ifdown $PROV_BRIDGE
+ifup $PROV_BRIDGE
 
 ifdown $PROV_INTF
 ifup $PROV_INTF
@@ -47,10 +84,10 @@ ifup $PROV_INTF
 ### Configure baremetal interface ###
 ###-------------------------------###
 
-printf "\nConfiguring baremetal interface ($BM_INTF)...\n\n"
+printf "\nConfiguring baremetal interface ($BM_INTF) and bridge ($BM_BRIDGE)...\n\n"
 
-cat <<EOF > /etc/sysconfig/network-scripts/ifcfg-$BM_INTF
-TYPE=Ethernet
+cat <<EOF > /etc/sysconfig/network-scripts/ifcfg-$BM_BRIDGE
+TYPE=Bridge
 NM_CONTROLLED=no
 PROXY_METHOD=none
 BROWSER_ONLY=no
@@ -62,12 +99,24 @@ IPV6_AUTOCONF=yes
 IPV6_DEFROUTE=yes
 IPV6_FAILURE_FATAL=no
 IPV6_ADDR_GEN_MODE=stable-privacy
-NAME=$BM_INTF
-DEVICE=$BM_INTF
-IPADDR=192.168.111.1
+NAME=$BM_BRIDGE
+DEVICE=$BM_BRIDGE
+IPADDR=$(nthhost $BM_IP_CIDR 1)
 NETMASK=255.255.255.0
 ONBOOT=yes
 EOF
+
+cat <<EOF > /etc/sysconfig/network-scripts/ifcfg-$BM_INTF
+TYPE=Ethernet
+NM_CONTROLLED=no
+NAME=$BM_INTF
+DEVICE=$BM_INTF
+ONBOOT=yes
+BRIDGE=$BM_BRIDGE
+EOF
+
+ifdown $BM_BRIDGE
+ifup $BM_BRIDGE
 
 ifdown $BM_INTF
 ifup $BM_INTF
@@ -76,22 +125,22 @@ ifup $BM_INTF
 ### Create required directories ###
 ###-----------------------------###
 
-printf "\nCreating required directories...\n\n"
+# printf "\nCreating required directories...\n\n"
 
-if [[ ! -d "~/dev/test1" ]]; then
-    mkdir -p ~/dev/test1
-    mkdir -p ~/dev/upi-dnsmasq/$PROV_INTF
-    mkdir -p ~/dev/upi-dnsmasq/$BM_INTF
-    mkdir -p ~/dev/scripts
-    mkdir -p ~/dev/containers/haproxy
-    sudo mkdir -p /etc/matchbox
-    mkdir -p ~/.matchbox
-    sudo mkdir -p /var/lib/matchbox
-    sudo mkdir -p /etc/coredns
-    sudo mkdir -p /var/run/dnsmasq
-    sudo mkdir -p /var/run/dnsmasq2
-    mkdir -p ~/go/src
-fi
+# if [[ ! -d "~/dev/test1" ]]; then
+#     mkdir -p ~/dev/test1
+#     mkdir -p ~/dev/upi-dnsmasq/$PROV_INTF
+#     mkdir -p ~/dev/upi-dnsmasq/$BM_INTF
+#     mkdir -p ~/dev/scripts
+#     mkdir -p ~/dev/containers/haproxy
+#     sudo mkdir -p /etc/matchbox
+#     mkdir -p ~/.matchbox
+#     sudo mkdir -p /var/lib/matchbox
+#     sudo mkdir -p /etc/coredns
+#     sudo mkdir -p /var/run/dnsmasq
+#     sudo mkdir -p /var/run/dnsmasq2
+#     mkdir -p ~/go/src
+# fi
 
 ###--------------------------------------------------###
 ### Configure iptables to allow for external traffic ###

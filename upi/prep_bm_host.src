@@ -2,11 +2,9 @@
 # Set the values here and then run prep_bm_host.sh.
 
 export PROV_INTF=
+export PROV_BRIDGE=provisioning
 export BM_INTF=
+export BM_BRIDGE=baremetal
 export EXT_INTF=
-export BSTRAP_BM_MAC=
-export MASTER_0_BM_MAC=
-export MASTER_1_BM_MAC=
-export MASTER_2_BM_MAC=
-export WORKER_BM_MAC=
-
+export PROV_IP_CIDR="172.22.0.0/24"
+export BM_IP_CIDR="192.168.111.0/24"
