@@ -43,3 +43,23 @@ join_by() {
     shift
     echo "$*"
 }
+
+# 
+# This function generates an IP address given as network CIDR and an offset
+# nthhost(192.168.111.0/24,3) => 192.168.111.3
+#
+nthhost() {
+    address="$1"
+    nth="$2"
+
+    mapfile -t ips < <(nmap -n -sL "$address" 2>&1 | awk '/Nmap scan report/{print $NF}')
+    #ips=($(nmap -n -sL "$address" 2>&1 | awk '/Nmap scan report/{print $NF}'))
+    ips_len="${#ips[@]}"
+
+    if [ "$ips_len" -eq 0 ] || [ "$nth" -gt "$ips_len" ]; then
+        echo "Invalid address: $address or offset $nth"
+        exit 1
+    fi
+
+    echo "${ips[$nth]}"
+}
