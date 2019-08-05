@@ -2,26 +2,6 @@
 
 #set -e
 
-# 
-# This function generates an IP address given as network CIDR and an offset
-# nthhost(192.168.111.0/24,3) => 192.168.111.3
-#
-nthhost() {
-    address="$1"
-    nth="$2"
-
-    mapfile -t ips < <(nmap -n -sL "$address" 2>&1 | awk '/Nmap scan report/{print $NF}')
-    #ips=($(nmap -n -sL "$address" 2>&1 | awk '/Nmap scan report/{print $NF}'))
-    ips_len="${#ips[@]}"
-
-    if [ "$ips_len" -eq 0 ] || [ "$nth" -gt "$ips_len" ]; then
-        echo "Invalid address: $address or offset $nth"
-        exit 1
-    fi
-
-    echo "${ips[$nth]}"
-}
-
 ###------------------------------------------------###
 ### Need interface input from user via environment ###
 ###------------------------------------------------###
@@ -30,15 +10,31 @@ source prep_bm_host.src
 
 printf "\nChecking parameters...\n\n"
 
-for i in PROV_INTF BM_INTF EXT_INTF BSTRAP_BM_MAC MASTER_BM_MAC WORKER_BM_MAC; do
+for i in PROV_INTF PROV_BRIDGE BM_INTF BM_BRIDGE EXT_INTF PROV_IP_CIDR BM_IP_CIDR; do
     if [[ -z "${!i}" ]]; then
-        echo "You must set PROV_INTF, BM_INTF, EXT_INTF, BSTRAP_BM_MAC, MASTER_BM_MAC and WORKER_BM_MAC as environment variables!"
+        echo "You must set PROV_INTF, PROV_BRIDGE, BM_INTF, BM_BRIDGE, EXT_INTF, PROV_IP_CIDR and BM_IP_CIDR as environment variables!"
         echo "Edit prep_bm_host.src to set these values."
         exit 1
     else
         echo $i": "${!i}
     fi
 done
+
+###------------------------------###
+### Source helper scripts first! ###
+###------------------------------###
+
+# shellcheck disable=SC1091
+source "scripts/network_conf.sh"
+# shellcheck disable=SC1091
+source "scripts/utils.sh"
+
+###-------------------------------###
+### Call gen_*.sh scripts second! ###
+###-------------------------------###
+
+./gen_dnsmasq.sh
+./gen_haproxy.sh
 
 ###---------------------------------------------###
 ### Configure provisioning interface and bridge ###
@@ -148,7 +144,7 @@ ifup $BM_INTF
 
 printf "\nConfiguring iptables to allow for external traffic...\n\n"
 
-cat <<EOF > ~/dev/scripts/iptables.sh
+cat <<EOF > scripts/iptables.sh
 #!/bin/bash
 
 ins_del_rule()
@@ -170,15 +166,17 @@ ins_del_rule()
 }
 
     #allow DNS/DHCP traffic to dnsmasq and coredns
-    ins_del_rule "INSERT" "filter" "INPUT -i $BM_INTF -p udp -m udp --dport 67 -j ACCEPT"
-    ins_del_rule "INSERT" "filter" "INPUT -i $BM_INTF -p udp -m udp --dport 53 -j ACCEPT"
-    ins_del_rule "INSERT" "filter" "INPUT -i $BM_INTF -p tcp -m tcp --dport 67 -j ACCEPT"
-    ins_del_rule "INSERT" "filter" "INPUT -i $BM_INTF -p tcp -m tcp --dport 53 -j ACCEPT"
+    ins_del_rule "INSERT" "filter" "INPUT -i $BM_BRIDGE -p udp -m udp --dport 67 -j ACCEPT"
+    ins_del_rule "INSERT" "filter" "INPUT -i $BM_BRIDGE -p udp -m udp --dport 53 -j ACCEPT"
+    ins_del_rule "INSERT" "filter" "INPUT -i $BM_BRIDGE -p tcp -m tcp --dport 67 -j ACCEPT"
+    ins_del_rule "INSERT" "filter" "INPUT -i $BM_BRIDGE -p tcp -m tcp --dport 53 -j ACCEPT"
    
-    #enable routing from cluster network to external
+    #enable routing from provisioning and cluster network to external
     ins_del_rule "INSERT" "nat" "POSTROUTING -o $EXT_INTF -j MASQUERADE"
-    ins_del_rule "INSERT" "filter" "FORWARD -i $PROV_INTF -o $EXT_INTF -j ACCEPT"
-    ins_del_rule "INSERT" "filter" "FORWARD -o $PROV_INTF -i $EXT_INTF -m state --state RELATED,ESTABLISHED -j ACCEPT"
+    ins_del_rule "INSERT" "filter" "FORWARD -i $PROV_BRIDGE -o $EXT_INTF -j ACCEPT"
+    ins_del_rule "INSERT" "filter" "FORWARD -o $PROV_BRIDGE -i $EXT_INTF -m state --state RELATED,ESTABLISHED -j ACCEPT"
+    ins_del_rule "INSERT" "filter" "FORWARD -i $BM_BRIDGE -o $EXT_INTF -j ACCEPT"
+    ins_del_rule "INSERT" "filter" "FORWARD -o $BM_BRIDGE -i $EXT_INTF -m state --state RELATED,ESTABLISHED -j ACCEPT"
 
     #remove certain problematic REJECT rules
     REJECT_RULE=\`iptables -S | grep "INPUT -j REJECT --reject-with icmp-host-prohibited"\`
@@ -194,18 +192,18 @@ ins_del_rule()
     fi
 EOF
 
-pushd ~/dev/scripts
+pushd scripts
 chmod 755 iptables.sh
 ./iptables.sh
 popd
 
-###--------------------------------------------------###
-### Install Git, Podman, Unzip, Ipmitool and Dnsmasq ###
-###--------------------------------------------------###
+###------------------------------------------------------###
+### Install Git, Podman, Unzip, Ipmitool, Dnsmasq and Yq ###
+###------------------------------------------------------###
 
 printf "\nInstalling dependencies via yum...\n\n"
 
-sudo yum install -y git podman unzip ipmitool dnsmasq
+sudo yum install -y git podman unzip ipmitool dnsmasq yq
 
 ###----------------###
 ### Install Golang ###
@@ -277,7 +275,7 @@ printf "\nConfiguring HAProxy and building container image...\n\n"
 HAPROXY_IMAGE_ID=`podman images | grep akraino-haproxy | awk {'print $3'}`
 
 if [[ -z "$HAPROXY_IMAGE_ID" ]]; then
-    pushd ~/dev/containers/haproxy
+    pushd haproxy
 
 cat <<EOF > haproxy.cfg
 #---------------------------------------------------------------------
@@ -344,24 +342,24 @@ frontend https
 backend kubeapi-main
     balance source
     mode tcp
-    server test1-bootstrap 192.168.111.10:6443 check
-    server test1-master-0  192.168.111.11:6443 check
+    server test1-bootstrap $(nthhost $BM_IP_CIDR 10):6443 check
+    server test1-master-0  $(nthhost $BM_IP_CIDR 11):6443 check
 
 backend mcs-main
     balance source
     mode tcp
-    server test1-bootstrap 192.168.111.10:22623 check
-    server test1-master-0  192.168.111.11:22623 check
+    server test1-bootstrap $(nthhost $BM_IP_CIDR 10):22623 check
+    server test1-master-0  $(nthhost $BM_IP_CIDR 11):22623 check
 
 backend http-main
     balance source
     mode tcp
-    server test1-worker-0  192.168.111.50:80 check
+    server test1-worker-0  $(nthhost $BM_IP_CIDR 50):80 check
 
 backend https-main
     balance source
     mode tcp
-    server test1-worker-0  192.168.111.50:443 check
+    server test1-worker-0  $(nthhost $BM_IP_CIDR 50):443 check
 EOF
 
 cat <<'EOF' > Dockerfile
@@ -383,9 +381,9 @@ chown -R ${HAPROXY_USER}:${HAPROXY_USER} /var/lib/${HAPROXY_USER}
 CMD ["haproxy", "-db", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
 EOF
 
-HAPROXY_IMAGE_ID=`podman build . | rev | cut -d ' ' -f 1 | rev | tail -1`
-podman tag $HAPROXY_IMAGE_ID akraino-haproxy:latest
-popd
+    HAPROXY_IMAGE_ID=`podman build . | rev | cut -d ' ' -f 1 | rev | tail -1`
+    podman tag $HAPROXY_IMAGE_ID akraino-haproxy:latest
+    popd
 fi
 
 ###-------------------------###
@@ -401,99 +399,6 @@ if [[ -z "$HAPROXY_CONTAINER" ]]; then
     podman run -d --name haproxy --net=host -p 80:80 -p 443:443 -p 6443:6443 -p 22623:22623 $HAPROXY_IMAGE_ID -f /usr/local/etc/haproxy/haproxy.cfg
 fi
 
-###-------------------------------------------###
-### Create provisioning dnsmasq configuration ###
-###-------------------------------------------###
-
-printf "\nConfiguring provisioning dnsmasq...\n\n"
-
-cat <<EOF > ~/dev/upi-dnsmasq/$PROV_INTF/dnsmasq.conf
-port=0 # do not activate nameserver
-interface=$PROV_INTF
-bind-interfaces
-
-dhcp-range=172.22.0.11,172.22.0.30,30m
-
-# do not send default route
-dhcp-option=3
-dhcp-option=6
-
-# Legacy PXE
-dhcp-match=set:bios,option:client-arch,0
-dhcp-boot=tag:bios,undionly.kpxe
-
-# UEFI
-dhcp-match=set:efi32,option:client-arch,6
-dhcp-boot=tag:efi32,ipxe.efi
-dhcp-match=set:efibc,option:client-arch,7
-dhcp-boot=tag:efibc,ipxe.efi
-dhcp-match=set:efi64,option:client-arch,9
-dhcp-boot=tag:efi64,ipxe.efi
-
-# verbose
-log-queries
-log-dhcp
-
-dhcp-leasefile=/var/run/dnsmasq/$PROV_INTF.leasefile
-log-facility=/var/run/dnsmasq/$PROV_INTF.log
-
-# iPXE - chainload to matchbox ipxe boot script
-dhcp-userclass=set:ipxe,iPXE
-dhcp-boot=tag:ipxe,http://172.22.0.10:8080/boot.ipxe
-
-# Enable dnsmasq's built-in TFTP server
-enable-tftp
-
-# Set the root directory for files available via FTP.
-tftp-root=/var/lib/tftpboot
-
-tftp-no-blocksize
-
-dhcp-boot=pxelinux.0
-
-conf-dir=/etc/dnsmasq.d,.rpmnew,.rpmsave,.rpmorig
-
-EOF
-
-###----------------------------------------###
-### Create baremetal dnsmasq configuration ###
-###----------------------------------------###
-
-printf "\nConfiguring baremetal dnsmasq...\n\n"
-
-cat <<EOF > ~/dev/upi-dnsmasq/$BM_INTF/dnsmasq.conf
-port=0
-interface=$BM_INTF
-bind-interfaces
-
-strict-order
-pid-file=/var/run/dnsmasq/$BM_INTF.pid
-except-interface=lo
-
-dhcp-range=192.168.111.10,192.168.111.60,30m
-#default gateway
-dhcp-option=3,192.168.111.1
-#dns server
-dhcp-option=6,192.168.111.1
-
-log-queries
-log-dhcp
-
-dhcp-no-override
-dhcp-authoritative
-dhcp-hostsfile=/var/run/dnsmasq/$BM_INTF.hostsfile
-
-dhcp-leasefile=/var/run/dnsmasq/$BM_INTF.leasefile
-log-facility=/var/run/dnsmasq/$BM_INTF.log
-
-EOF
-
-cat <<EOF > /var/run/dnsmasq2/$BM_INTF.hostsfile
-$BSTRAP_BM_MAC,192.168.111.10,test1-bootstrap
-$MASTER_BM_MAC,192.168.111.11,test1-master-0
-$WORKER_BM_MAC,192.168.111.50,test1-worker-0
-EOF
-
 ###--------------------------------------###
 ### Start provisioning dnsmasq container ###
 ###--------------------------------------###
@@ -503,8 +408,8 @@ printf "\nStarting provisioning dnsmasq container...\n\n"
 DNSMASQ_PROV_CONTAINER=`podman ps | grep dnsmasq-prov`
 
 if [[ -z "$DNSMASQ_PROV_CONTAINER" ]]; then
-    podman run -d --name dnsmasq-prov --net=host -v /var/run/dnsmasq:/var/run/dnsmasq:Z \
-    -v ~/dev/upi-dnsmasq/$PROV_INTF:/etc/dnsmasq.d:Z \
+    podman run -d --name dnsmasq-prov --net=host -v dnsmasq/prov/var/run:/var/run/dnsmasq:Z \
+    -v dnsmasq/prov/etc/dnsmasq.d:/etc/dnsmasq.d:Z \
     --expose=53 --expose=53/udp --expose=67 --expose=67/udp --expose=69 --expose=69/udp \
     --cap-add=NET_ADMIN quay.io/poseidon/dnsmasq --conf-file=/etc/dnsmasq.d/dnsmasq.conf -u root -d -q
 fi
@@ -518,8 +423,8 @@ printf "\nStarting baremetal dnsmasq container...\n\n"
 DNSMASQ_BM_CONTAINER=`podman ps | grep dnsmasq-bm`
 
 if [[ -z "$DNSMASQ_BM_CONTAINER" ]]; then
-    podman run -d --name dnsmasq-bm --net=host -v /var/run/dnsmasq2:/var/run/dnsmasq:Z \
-    -v ~/dev/upi-dnsmasq/$BM_INTF:/etc/dnsmasq.d:Z \
+    podman run -d --name dnsmasq-bm --net=host -v dnsmasq/bm/var/run:/var/run/dnsmasq:Z \
+    -v dnsmasq/bm/etc/dnsmasq.d:/etc/dnsmasq.d:Z \
     --expose=53 --expose=53/udp --expose=67 --expose=67/udp --expose=69 --expose=69/udp \
     --cap-add=NET_ADMIN quay.io/poseidon/dnsmasq --conf-file=/etc/dnsmasq.d/dnsmasq.conf -u root -d -q
 fi
@@ -530,12 +435,12 @@ fi
 
 printf "\nConfiguring matchbox...\n\n"
 
-pushd ~/dev/containers
+pushd matchbox
 
 if [[ ! -d "matchbox" ]]; then
     git clone https://github.com/poseidon/matchbox.git
     pushd matchbox/scripts/tls
-    export SAN=IP.1:172.22.0.10
+    export SAN=IP.1:$(nthhost $PROV_IP_CIDR 10)
     ./cert-gen
     sudo cp ca.crt server.crt server.key /etc/matchbox
     cp ca.crt client.crt client.key ~/.matchbox 
@@ -544,6 +449,7 @@ fi
 
 popd
 
+# TODO: Have this use the same "matchbox" directory as above?
 if [[ ! -d "/var/lib/matchbox/assets" ]]; then
     sudo mkdir /var/lib/matchbox/assets
     pushd /var/lib/matchbox/assets
@@ -572,8 +478,8 @@ fi
 
 printf "\nConfiguring CoreDNS...\n\n"
 
-if [[ ! -f "/etc/coredns/Corefile" ]]; then
-cat <<EOF > /etc/coredns/Corefile
+if [[ ! -f "coredns/Corefile" ]]; then
+cat <<EOF > coredns/Corefile
 .:53 {
     log
     errors
@@ -589,7 +495,7 @@ tt.testing:53 {
 
 EOF
 
-cat <<'EOF' > /etc/coredns/db.tt.testing
+cat <<'EOF' > coredns/db.tt.testing
 $ORIGIN tt.testing.
 $TTL 10800      ; 3 hours
 @       3600 IN SOA sns.dns.icann.org. noc.dns.icann.org. (
@@ -602,15 +508,15 @@ $TTL 10800      ; 3 hours
 
 _etcd-server-ssl._tcp.test1.tt.testing. 8640 IN    SRV 0 10 2380 etcd-0.test1.tt.testing.
 
-api.test1.tt.testing.                        A 192.168.111.1
-api-int.test1.tt.testing.                    A 192.168.111.1
-test1-master-0.tt.testing.                   A 192.168.111.11
-test1-worker-0.tt.testing.                   A 192.168.111.50
-test1-bootstrap.tt.testing.                  A 192.168.111.10
+api.test1.tt.testing.                        A $(nthhost $BM_IP_CIDR 1)
+api-int.test1.tt.testing.                    A $(nthhost $BM_IP_CIDR 1)
+test1-master-0.tt.testing.                   A $(nthhost $BM_IP_CIDR 11)
+test1-worker-0.tt.testing.                   A $(nthhost $BM_IP_CIDR 50)
+test1-bootstrap.tt.testing.                  A $(nthhost $BM_IP_CIDR 10)
 etcd-0.test1.tt.testing.                     IN  CNAME test1-master-0.tt.testing.
 
 $ORIGIN apps.test1.tt.testing.
-*                                                    A                192.168.111.1
+*                                                    A                $(nthhost $BM_IP_CIDR 1)
 EOF
 fi
 
@@ -623,8 +529,8 @@ printf "\nStarting CoreDNS container...\n\n"
 COREDNS_CONTAINER=`podman ps | grep coredns`
 
 if [[ -z "$COREDNS_CONTAINER" ]]; then
-    podman run -d --expose=53 --expose=53/udp -p 192.168.111.1:53:53 -p 192.168.111.1:53:53/udp \
-    -v /etc/coredns:/etc/coredns:z --name coredns coredns/coredns:latest -conf /etc/coredns/Corefile
+    podman run -d --expose=53 --expose=53/udp -p $(nthhost $BM_IP_CIDR 1):53:53 -p $(nthhost $BM_IP_CIDR 1):53:53/udp \
+    -v coredns:/etc/coredns:z --name coredns coredns/coredns:latest -conf /etc/coredns/Corefile
 fi
 
 ###----------------------------###
