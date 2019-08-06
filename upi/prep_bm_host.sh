@@ -217,13 +217,19 @@ export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 
 if [[ ! -d "/usr/local/go" ]]; then
     pushd /tmp
+
     curl -O https://dl.google.com/go/go1.12.6.linux-amd64.tar.gz
     tar -xzf go1.12.6.linux-amd64.tar.gz
     sudo mv go /usr/local
-    # TODO: Use sed instead below?
-    echo "export GOROOT=/usr/local/go" >> ~/.bash_profile
-    echo "export GOPATH=$HOME/go/src" >> ~/.bash_profile
-    echo "export PATH=$GOPATH/bin:$GOROOT/bin:$PATH" >> ~/.bash_profile
+    
+    GOINSTALLED=`grep GOROOT ~/.bash_profile`
+    
+    if [[ -z "$GOINSTALLED" ]]; then
+        echo "export GOROOT=/usr/local/go" >> ~/.bash_profile
+        echo "export GOPATH=$HOME/go/src" >> ~/.bash_profile
+        echo "export PATH=$GOPATH/bin:$GOROOT/bin:$PATH" >> ~/.bash_profile
+    fi
+    
     popd
 fi
 
@@ -390,7 +396,6 @@ fi
 ### Start HAProxy container ###
 ###-------------------------###
 
-# TODO: Check if container is already running
 printf "\nStarting HAProxy container...\n\n"
 
 HAPROXY_CONTAINER=`podman ps | grep haproxy`
