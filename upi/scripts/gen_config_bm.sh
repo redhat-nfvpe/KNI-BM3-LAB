@@ -31,35 +31,21 @@ usage() {
             Default to $PROJECT_DIR/cluster//prep_host_setup.src
 EOM
 }
-if [[ -z "$PROJECT_DIR" ]]; then
-    usage
-    exit 1
-fi
 
-# shellcheck disable=SC1090
-source "$PROJECT_DIR/scripts/utils.sh"
-
-prep_host_setup_src="$PROJECT_DIR/cluster/prep_bm_host.src"
-prep_host_setup_src=$(realpath "$prep_host_setup_src")
-
-# get prep_host_setup.src file info
-parse_prep_bm_host_src "$prep_host_setup_src"
-
-# shellcheck disable=SC1090
-source "$PROJECT_DIR/scripts/network_conf.sh"
 
 gen_hostfile_bm() {
     out_dir=$1
 
     hostsfile="$out_dir/$BM_ETC_DIR/dnsmasq.hostsfile"
 
-    #list of master manifests
+    #list of master manifest
+    printf "Generating %s...\n" "$hostsfile"
 
     cid="${FINAL_VALS[cluster_id]}"
     cdomain="${FINAL_VALS[cluster_domain]}"
-    echo "${FINAL_VALS[bootstrap_mac_address]},$BM_IP_BOOTSTRAP,$cid-bootstrap-0.$cdomain" | tee "$hostsfile"
+    echo "${FINAL_VALS[bootstrap_mac_address]},$BM_IP_BOOTSTRAP,$cid-bootstrap-0.$cdomain" > "$hostsfile"
 
-    echo "${FINAL_VALS[master-0.spec.bootMACAddress]},$(get_master_bm_ip 0),$cid-master-0.$cdomain" | tee -a "$hostsfile"
+    echo "${FINAL_VALS[master-0.spec.bootMACAddress]},$(get_master_bm_ip 0),$cid-master-0.$cdomain" >> "$hostsfile"
 
     if [ -n "${FINAL_VALS[master-1.spec.bootMACAddress]}" ] && [ -z "${FINAL_VALS[master-2.spec.bootMACAddress]}" ]; then
         echo "Both master-1 and master-2 must be set."
@@ -72,8 +58,8 @@ gen_hostfile_bm() {
     fi
 
     if [ -n "${FINAL_VALS[master-1.spec.bootMACAddress]}" ] && [ -n "${FINAL_VALS[master-2.spec.bootMACAddress]}" ]; then
-        echo "${FINAL_VALS[master-1.spec.bootMACAddress]},$BM_IP_MASTER_1,$cid-master-1.$cdomain" | tee -a "$hostsfile"
-        echo "${FINAL_VALS[master-2.spec.bootMACAddress]},$BM_IP_MASTER_2,$cid-master-2.$cdomain" | tee -a "$hostsfile"
+        echo "${FINAL_VALS[master-1.spec.bootMACAddress]},$BM_IP_MASTER_1,$cid-master-1.$cdomain" >> "$hostsfile"
+        echo "${FINAL_VALS[master-2.spec.bootMACAddress]},$BM_IP_MASTER_2,$cid-master-2.$cdomain" >> "$hostsfile"
     fi
 
    # generate hostfile entries for workers
@@ -121,7 +107,11 @@ gen_config_bm() {
     mkdir -p "$etc_dir"
     mkdir -p "$var_dir"
 
-    cat <<EOF >"$etc_dir/dnsmasq.conf"
+    local out_file="$etc_dir/dnsmasq.conf"
+
+    printf "Generating %s...\n" "$out_file"
+    
+    cat <<EOF >"$out_file"
 # This config file is intended for use with a container instance of dnsmasq
 
 $(gen_bm_help)
@@ -153,10 +143,16 @@ log-facility=/var/run/dnsmasq/dnsmasq.log
 EOF
 }
 
-while getopts ":ho:s:m:" opt; do
+VERBOSE="false"
+export VERBOSE
+
+while getopts ":ho:s:m:v" opt; do
     case ${opt} in
     o)
         out_dir=$OPTARG
+        ;;
+    v)
+        VERBOSE="true"
         ;;
     s)
         prep_host_setup_src=$OPTARG
@@ -174,6 +170,23 @@ while getopts ":ho:s:m:" opt; do
         ;;
     esac
 done
+
+if [[ -z "$PROJECT_DIR" ]]; then
+    usage
+    exit 1
+fi
+
+# shellcheck disable=SC1090
+source "$PROJECT_DIR/scripts/utils.sh"
+
+prep_host_setup_src="$PROJECT_DIR/cluster/prep_bm_host.src"
+prep_host_setup_src=$(realpath "$prep_host_setup_src")
+
+# get prep_host_setup.src file info
+parse_prep_bm_host_src "$prep_host_setup_src"
+
+# shellcheck disable=SC1090
+source "$PROJECT_DIR/scripts/network_conf.sh"
 
 out_dir=${out_dir:-$PROJECT_DIR/dnsmasq}
 out_dir=$(realpath "$out_dir")

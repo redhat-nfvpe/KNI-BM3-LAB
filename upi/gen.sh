@@ -71,17 +71,6 @@
 #     credentialsName: ha-lab-ipmi-secret
 #   bootMACAddress: 0c:c4:7a:8e:ee:0c
 
-# shellcheck disable=SC1091
-source "common.sh"
-
-# shellcheck disable=SC1091
-source "scripts/network_conf.sh"
-
-# shellcheck disable=SC1091
-source "scripts/manifest_check.sh"
-# shellcheck disable=SC1091
-source "scripts/utils.sh"
-
 usage() {
     cat <<EOM
     Generate configuration files for either the provisioning interface or the
@@ -117,6 +106,58 @@ gen_terraform_cluster() {
     local cluster_dir="$out_dir/cluster"
     mkdir -p "$cluster_dir"
     local ofile="$out_dir/cluster/terraform.tfvars"
+
+    mapfile -d '' sorted < <(printf '%s\0' "${!CLUSTER_MAP[@]}" | sort -z)
+
+    printf "Generating...%s]\n" "$ofile"
+
+    printf "// AUTOMATICALLY GENERATED -- Do not edit\n" | sudo tee "$ofile"
+    
+    for key in "${sorted[@]}"; do
+        printf "%s = \"%s\"\n" "$key" "${FINAL_VALS[$key]}" | sudo tee -a "$ofile"
+        #printf '%s matches with %s\n' "$key" "${CLUSTER_MAP[$key]}"
+    done
+    # Generate the cluster terraform values for the variable number
+    # of masters
+
+    # TODO ... generate the following
+
+    printf "master_nodes = [\n" | sudo tee -a "$ofile"
+    printf "  {\n" | sudo tee -a "$ofile"
+
+    num_masters="${FINAL_VALS[master_count]}"
+    for ((i = 0; i < num_masters; i++)); do
+        m="master-$i"
+        printf "    name: \"%s\"\n" "${FINAL_VALS[$m.metadata.name]}" | sudo tee -a "$ofile"
+        printf "    public_ipv4: \"%s\"\n" "$(get_master_bm_ip $i)" | sudo tee -a "$ofile"
+        printf "    ipmi_host: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.address]}" | sudo tee -a "$ofile"
+        printf "    ipmi_user: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.user]}" | sudo tee -a "$ofile"
+        printf "    ipmi_pass: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.password]}" | sudo tee -a "$ofile"
+        printf "    mac_address: \"%s\"\n" "${FINAL_VALS[$m.spec.bootMACAddress]}" | sudo tee -a "$ofile"
+
+    done
+
+    printf "  }\n" | sudo tee -a "$ofile"
+    printf "]\n" | sudo tee -a "$ofile"
+
+    #master_nodes = [
+    #  {
+    #    name: "${MASTER0_NAME}",
+    #    public_ipv4: "${MASTER0_IP}",
+    #    ipmi_host: "${MASTER0_IPMI_HOST}",
+    #    ipmi_user: "${MASTER0_IPMI_USER}",
+    #    ipmi_pass: "${MASTER0_IPMI_PASS}",
+    #    mac_address: "${MASTER0_MAC}"
+    #  }
+    #]
+}
+
+gen_terraform_workers() {
+    local out_dir="$1"
+
+    local cluster_dir="$out_dir/cluster"
+    mkdir -p "$cluster_dir"
+    local ofile="$out_dir/workers/terraform.tfvars"
 
     mapfile -d '' sorted < <(printf '%s\0' "${!CLUSTER_MAP[@]}" | sort -z)
 
@@ -167,7 +208,11 @@ if [ "$#" -lt 1 ]; then
     usage
 fi
 
-while getopts ":hm:b:s:t:" opt; do
+VERBOSE="false"
+export VERBOSE
+
+while getopts ":hm:b:s:t:v" opt; do
+    echo "getopts"
     case ${opt} in
     m)
         manifest_dir=$OPTARG
@@ -181,6 +226,9 @@ while getopts ":hm:b:s:t:" opt; do
     s)
         prep_host_setup_src=$OPTARG
         ;;
+    v)
+        VERBOSE="true"
+        ;;
     h)
         usage
         exit 0
@@ -193,14 +241,32 @@ while getopts ":hm:b:s:t:" opt; do
 done
 shift $((OPTIND - 1))
 
-manifest_dir=${manifest_dir:-./cluster}
+# shellcheck disable=SC1091
+source "common.sh"
+
+# shellcheck disable=SC1091
+source "scripts/network_conf.sh"
+
+# shellcheck disable=SC1091
+source "scripts/manifest_check.sh"
+# shellcheck disable=SC1091
+source "scripts/utils.sh"
+
+if [[ -z "$PROJECT_DIR" ]]; then
+    usage
+    exit 1
+fi
+# shellcheck disable=SC1090
+source "$PROJECT_DIR/scripts/cluster_map.sh"
+
+manifest_dir=${manifest_dir:-$PROJECT_DIR/cluster}
 check_directory_exists "$manifest_dir"
 manifest_dir=$(realpath "$manifest_dir")
 
-terraform_dir=${terraform_dir:-./terraform}
+terraform_dir=${terraform_dir:-$PROJECT_DIR/terraform}
 terraform_dir=$(realpath "$terraform_dir")
 
-base_dir=${base_dir:-./dnsmasq}
+base_dir=${base_dir:-$PROJECT_DIR/dnsmasq}
 check_directory_exists "$base_dir"
 base_dir=$(realpath "$base_dir")
 

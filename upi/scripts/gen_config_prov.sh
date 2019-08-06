@@ -32,22 +32,6 @@ usage() {
             Default to $PROJECT_DIR/cluster//prep_host_setup.src
 EOM
 }
-if [[ -z "$PROJECT_DIR" ]]; then
-    usage
-    exit 1
-fi
-
-# shellcheck disable=SC1090
-source "$PROJECT_DIR/scripts/utils.sh"
-
-prep_host_setup_src="$PROJECT_DIR/cluster/prep_bm_host.src"
-prep_host_setup_src=$(realpath "$prep_host_setup_src")
-
-# get prep_host_setup.src file info
-parse_prep_bm_host_src "$prep_host_setup_src"
-
-# shellcheck disable=SC1090
-source "$PROJECT_DIR/scripts/network_conf.sh"
 
 gen_config_prov() {
     local intf=$1
@@ -59,7 +43,11 @@ gen_config_prov() {
     mkdir -p "$etc_dir"
     mkdir -p "$var_dir"
 
-    cat <<EOF >"$etc_dir/dnsmasq.conf"
+    local out_file="$etc_dir/dnsmasq.conf"
+
+    [[ "$VERBOSE" =~ true ]] && printf "Generating %s\n" "$out_file"
+    
+    cat <<EOF >"$out_file"
 # This config file is intended for use with a container instance of dnsmasq
 
 echo "The container should be run as follows with the generated dnsmasq.conf file"
@@ -118,7 +106,10 @@ dhcp-boot=pxelinux.0
 EOF
 }
 
-while getopts ":ho:s:m:" opt; do
+VERBOSE="false"
+export VERBOSE
+
+while getopts ":ho:s:m:v" opt; do
     case ${opt} in
     o)
         out_dir=$OPTARG
@@ -128,6 +119,9 @@ while getopts ":ho:s:m:" opt; do
         ;;
     m)
         manifest_dir=$OPTARG
+        ;;
+    v)
+        VERBOSE="true"
         ;;
     h)
         usage
@@ -140,12 +134,27 @@ while getopts ":ho:s:m:" opt; do
     esac
 done
 
+if [[ -z "$PROJECT_DIR" ]]; then
+    usage
+    exit 1
+fi
+
+# shellcheck disable=SC1090
+source "$PROJECT_DIR/scripts/utils.sh"
+
+prep_host_setup_src="$PROJECT_DIR/cluster/prep_bm_host.src"
+prep_host_setup_src=$(realpath "$prep_host_setup_src")
+
+# get prep_host_setup.src file info
+parse_prep_bm_host_src "$prep_host_setup_src"
+
+# shellcheck disable=SC1090
+source "$PROJECT_DIR/scripts/network_conf.sh"
+
 out_dir=${out_dir:-$PROJECT_DIR/dnsmasq}
 out_dir=$(realpath "$out_dir")
 
 manifest_dir=${manifest_dir:-$PROJECT_DIR/cluster}
 manifest_dir=$(realpath "$manifest_dir")
 
-#parse_manifests "$manifest_dir"
-
-gen_config_prov "$PROV_INTF" "$out_dir"
+gen_config_prov "$PROV_INTF" "$out_dir" 

@@ -8,12 +8,21 @@ export ALL_VARS
 declare -A FINAL_VALS
 export FINAL_VALS
 
+if [[ -z "$PROJECT_DIR" ]]; then
+    usage
+    exit 1
+fi
+
+# shellcheck disable=SC1090
+source "$PROJECT_DIR/scripts/manifest_check.sh"
+
 parse_manifests() {
     local manifest_dir=$1
 
-    printf "Parsing manifest files in %s\n" "$manifest_dir"
+    [[ "$VERBOSE" =~ true ]] && printf "Parsing manifest files in %s\n" "$manifest_dir"
+
     for file in "$manifest_dir"/*.yaml; do
-        printf "\nParsing %s\n" "$file"
+        [[ "$VERBOSE" =~ true ]] && printf "Parsing %s\n" "$file"
 
         # Parse the yaml file using yq
         # The end result is an associative array, manifest_vars
@@ -36,12 +45,15 @@ parse_manifests() {
             #echo "manifest_vars[${l[0]}] == ${l[1]}"
         done
 
+        recognized=false
+
         name=""
         if [[ $file =~ install-config.yaml ]]; then
             # the install-config file is not really a manifest and
             # does not have a kind: tag.
             kind="install-config"
             name="install-config"
+            recognized=true
         elif [[ ${manifest_vars[kind]} ]]; then
             # All the manifest types must have at least one entry
             # in MANIFEST_CHECK.  The entry can just be an optional
@@ -53,8 +65,7 @@ parse_manifests() {
             exit 1
         fi
 
-        recognized=false
-        printf "Kind: %s\n" "$kind"
+        [[ "$VERBOSE" =~ true ]] && printf "Kind: %s\n" "$kind"
         # Loop through all entries in MANIFEST_CHECK
         for v in "${!MANIFEST_CHECK[@]}"; do
             # Split the path (i.e. bootstrap.spec.hardwareProfile ) into array
@@ -90,7 +101,7 @@ parse_manifests() {
         done
 
         if [[ $recognized =~ false ]]; then
-            printf "File: %s contains an unrecognized kind:\n" "$file"
+            printf "Warning... \"%s\" contains an unrecognized kind: \"%s\"\n" "$file" "$kind"
         fi
 
         # Finished the parse
@@ -106,39 +117,19 @@ parse_manifests() {
                 exit 1
             fi
             ALL_VARS[$val]=${manifest_vars[$v]}
-            printf "\tALL_VARS[%s] == \"%s\"\n" "$val" "${manifest_vars[$v]}"
+            [[ "$VERBOSE" =~ true ]] && printf "\tALL_VARS[%s] == \"%s\"\n" "$val" "${manifest_vars[$v]}"
         done
     done
 
     for v in "${!ALL_VARS[@]}"; do
-        echo "$v : ${ALL_VARS[$v]}"
+        [[ "$VERBOSE" =~ true ]] && echo "$v : ${ALL_VARS[$v]}"
     done
 }
 
-map_cluster_vars() {
+process_rule() {
+    local rule="$1"
 
-    # shellcheck disable=SC1091
-    source scripts/cluster_map.sh
-
-    # The keys in the following associative array
-    # specify varies to be emitted in the terraform vars file.
-    # the associated value contains
-    #  1. A static string value
-    #  2. A string with ENV vars that have been previously defined
-    #  3. A string prepended with '%' to indicate the final value is
-    #     located in the ALL_VARS array
-    #  4. ALL_VARS references may contain path.[field].field
-    #     i.e. bootstrap.spec.bmc.[credentialsName].password
-    #     in this instance [name].field references another manifest file
-    #  5. If a rule ends with an '@', the field will be base64 decoded
-    #
-
-    # Generate the cluster terraform values for the fixed
-    # variables
-    #
-    for v in "${!CLUSTER_MAP[@]}"; do
-        rule=${CLUSTER_MAP[$v]}
-        printf "Apply map-rule: \"%s\"\n" "$rule"
+    [[ "$VERBOSE" =~ true ]] && printf "Apply map-rule: \"%s\"\n" "$rule"
         # Map rules that start with % indicate that the value for the
         mapped_val="unknown"
         if [[ $rule =~ ^\% ]]; then
@@ -174,8 +165,43 @@ map_cluster_vars() {
         
         FINAL_VALS[$v]="$mapped_val"
 
-        printf "\tFINAL_VALS[%s] = \"%s\"\n" "$v" "$mapped_val"
+        [[ "$VERBOSE" =~ true ]] && printf "\tFINAL_VALS[%s] = \"%s\"\n" "$v" "$mapped_val"
+}
+map_cluster_vars() {
+
+    # shellcheck disable=SC1091
+    source scripts/cluster_map.sh
+
+    # The keys in the following associative array
+    # specify varies to be emitted in the terraform vars file.
+    # the associated value contains
+    #  1. A static string value
+    #  2. A string with ENV vars that have been previously defined
+    #  3. A string prepended with '%' to indicate the final value is
+    #     located in the ALL_VARS array
+    #  4. ALL_VARS references may contain path.[field].field
+    #     i.e. bootstrap.spec.bmc.[credentialsName].password
+    #     in this instance [name].field references another manifest file
+    #  5. If a rule ends with an '@', the field will be base64 decoded
+    #
+
+    # Generate the cluster terraform values for the fixed
+    # variables
+    #
+    for v in "${!CLUSTER_MAP[@]}"; do
+        rule=${CLUSTER_MAP[$v]}
+
+        process_rule "$rule"
     done
+
+        # Generate the cluster terraform values for the master nodes
+    #
+    for v in "${!CLUSTER_MASTER_MAP[@]}"; do
+        rule=${CLUSTER_MASTER_MAP[$v]}
+
+        process_rule "$rule"
+    done
+
 }
 
 check_var() {
@@ -237,10 +263,30 @@ parse_prep_bm_host_src() {
         exit 1
     fi
 
+    if [ -z "${PROV_BRIDGE}" ]; then
+        PROV_BRIDGE="provisioning"
+        export PROV_BRIDGE
+    fi
+
     if [ -z "${BM_INTF}" ]; then
         echo "BM_INTF not set in ${prep_src}, must define BM_INTF"
         exit 1
     fi
 
-    echo "PROV_IP_CIDR $PROV_IP_CIDR"
+    if [ -z "${BM_BRIDGE}" ]; then
+        BM_BRIDGE="baremetal"
+        export BM_BRIDGE
+    fi
+
+    if [[ "$VERBOSE" =~ true ]]; then
+        echo "PROV_IP_CIDR = $PROV_IP_CIDR"
+        echo "BM_IP_CIDR = $BM_IP_CIDR"
+        echo "PROV_INTF = $PROV_INTF"
+        echo "PROV_BRIDGE = $PROV_BRIDGE"
+        echo "BM_INTF = $BM_INTF"
+        echo "BM_BRIDGE = $BM_BRIDGE"
+    fi
+
+    # PROV_IP_CIDR has a default value defined in scripts/network_conf.sh
+    # BM_IP_CIDR has a default value defined in scripts/network_conf.sh
 }
