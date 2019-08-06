@@ -117,27 +117,6 @@ ifup $BM_BRIDGE
 ifdown $BM_INTF
 ifup $BM_INTF
 
-###-----------------------------###
-### Create required directories ###
-###-----------------------------###
-
-# printf "\nCreating required directories...\n\n"
-
-# if [[ ! -d "~/dev/test1" ]]; then
-#     mkdir -p ~/dev/test1
-#     mkdir -p ~/dev/upi-dnsmasq/$PROV_INTF
-#     mkdir -p ~/dev/upi-dnsmasq/$BM_INTF
-#     mkdir -p ~/dev/scripts
-#     mkdir -p ~/dev/containers/haproxy
-#     sudo mkdir -p /etc/matchbox
-#     mkdir -p ~/.matchbox
-#     sudo mkdir -p /var/lib/matchbox
-#     sudo mkdir -p /etc/coredns
-#     sudo mkdir -p /var/run/dnsmasq
-#     sudo mkdir -p /var/run/dnsmasq2
-#     mkdir -p ~/go/src
-# fi
-
 ###--------------------------------------------------###
 ### Configure iptables to allow for external traffic ###
 ###--------------------------------------------------###
@@ -229,7 +208,7 @@ if [[ ! -d "/usr/local/go" ]]; then
         echo "export GOPATH=$HOME/go/src" >> ~/.bash_profile
         echo "export PATH=$GOPATH/bin:$GOROOT/bin:$PATH" >> ~/.bash_profile
     fi
-    
+
     popd
 fi
 
@@ -270,133 +249,11 @@ if [[ ! -d "/var/lib/tftpboot" ]]; then
     popd
 fi
 
-###-----------------------------------------###
-### Create HAProxy configuration and assets ###
-###-----------------------------------------###
-
-# TODO: Check if image is already built, or pre-build it elsewhere
-#       and remove this section completely
-printf "\nConfiguring HAProxy and building container image...\n\n"
-
-HAPROXY_IMAGE_ID=`podman images | grep akraino-haproxy | awk {'print $3'}`
-
-if [[ -z "$HAPROXY_IMAGE_ID" ]]; then
-    pushd haproxy
-
-cat <<EOF > haproxy.cfg
-#---------------------------------------------------------------------
-# Global settings
-#---------------------------------------------------------------------
-global
-    log         127.0.0.1 local2
-
-    chroot      /var/lib/haproxy
-    pidfile     /var/run/haproxy.pid
-    maxconn     4000
-    user        haproxy
-    group       haproxy
-    daemon
-
-    # turn on stats unix socket
-    stats socket /var/lib/haproxy/stats
-
-#---------------------------------------------------------------------
-# common defaults that all the 'listen' and 'backend' sections will
-# use if not designated in their block
-#---------------------------------------------------------------------
-defaults
-    mode                    http
-    log                     global
-    option                  httplog
-    option                  dontlognull
-    option forwardfor       except 127.0.0.0/8
-    option                  redispatch
-    retries                 3
-    timeout http-request    10s
-    timeout queue           1m
-    timeout connect         10s
-    timeout client          1m
-    timeout server          1m
-    timeout http-keep-alive 10s
-    timeout check           10s
-    maxconn                 3000
-
-frontend kubeapi
-    mode tcp
-    bind *:6443
-    option tcplog
-    default_backend kubeapi-main
-
-frontend mcs
-    bind *:22623
-    default_backend mcs-main
-    mode tcp
-    option tcplog
-
-frontend http
-    bind *:80
-    mode tcp
-    default_backend http-main
-    option tcplog
-
-frontend https
-    bind *:443
-    mode tcp
-    default_backend https-main
-    option tcplog
-
-backend kubeapi-main
-    balance source
-    mode tcp
-    server test1-bootstrap $(nthhost $BM_IP_CIDR 10):6443 check
-    server test1-master-0  $(nthhost $BM_IP_CIDR 11):6443 check
-
-backend mcs-main
-    balance source
-    mode tcp
-    server test1-bootstrap $(nthhost $BM_IP_CIDR 10):22623 check
-    server test1-master-0  $(nthhost $BM_IP_CIDR 11):22623 check
-
-backend http-main
-    balance source
-    mode tcp
-    server test1-worker-0  $(nthhost $BM_IP_CIDR 50):80 check
-
-backend https-main
-    balance source
-    mode tcp
-    server test1-worker-0  $(nthhost $BM_IP_CIDR 50):443 check
-EOF
-
-cat <<'EOF' > Dockerfile
-FROM haproxy:1.7
-COPY haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
-
-ENV HAPROXY_USER haproxy
-
-EXPOSE 80
-EXPOSE 443
-EXPOSE 6443
-EXPOSE 22623
-
-RUN groupadd --system ${HAPROXY_USER} && \
-useradd --system --gid ${HAPROXY_USER} ${HAPROXY_USER} && \
-mkdir --parents /var/lib/${HAPROXY_USER} && \
-chown -R ${HAPROXY_USER}:${HAPROXY_USER} /var/lib/${HAPROXY_USER}
-
-CMD ["haproxy", "-db", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
-EOF
-
-    HAPROXY_IMAGE_ID=`podman build . | rev | cut -d ' ' -f 1 | rev | tail -1`
-    podman tag $HAPROXY_IMAGE_ID akraino-haproxy:latest
-    popd
-fi
-
 ###-------------------------###
 ### Start HAProxy container ###
 ###-------------------------###
 
-printf "\nStarting HAProxy container...\n\n"
+printf "\nStarting haproxy container...\n\n"
 
 HAPROXY_CONTAINER=`podman ps | grep haproxy`
 
