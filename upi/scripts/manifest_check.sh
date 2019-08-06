@@ -6,7 +6,7 @@ regex_filename="^([-_A-Za-z0-9]+)$"
 regex_pos_int="^([0-9]+$)"
 regex_mac_address="^(([a-fA-F0-9]{2}:){5}[a-fA-F0-9]{2}$)"
 
-declare -A manifest_check=(
+declare -A MANIFEST_CHECK=(
     [BareMetalHost.req.metadata.name]="^(master-[012]{1}$|worker-[012]{1}$)|^(bootstrap$)"
     [BareMetalHost.opt.metadata.annotations.kni.io / sdnNetworkMac]="$regex_mac_address"
     [BareMetalHost.req.spec.bootMACAddress]="$regex_mac_address"
@@ -24,4 +24,4 @@ declare -A manifest_check=(
     [install - config.req.sshKey]="(.*)"
 )
 
-export manifest_check
+export MANIFEST_CHECK

@@ -3,7 +3,7 @@
 DEFAULT_INITRD="assets/rhcos-4.1.0-x86_64-installer-initramfs.img"
 DEFAULT_KERNEL="assets/rhcos-4.1.0-x86_64-installer-kernel"
 
-declare -A cluster_map=(
+declare -A CLUSTER_MAP=(
     [bootstrap_ign_file]="./ocp/bootstrap.ign"
     [master_ign_file]="./ocp/master.ign"
     [matchbox_client_cert]="./matchbox/scripts/tls/client.crt"
@@ -37,4 +37,4 @@ declare -A cluster_map=(
     [master-0.spec.bootMACAddress]="%master-0.spec.bootMACAddress"
 )
 
-export cluster_map
+export CLUSTER_MAP
