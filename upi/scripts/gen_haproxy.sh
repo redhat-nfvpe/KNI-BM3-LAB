@@ -3,6 +3,8 @@
 HAPROXY_IMAGE_NAME="akraino-haproxy"
 HAPROXY_IMAGE_TAG="latest"
 HAPROXY_CONTAINTER_NAME="akraino-haproxy"
+HAPROXY_KUBEAPI_PORT="6443"
+HAPROXY_MCS_MAIN_PORT="22623"
 
 set -o pipefail
 
@@ -100,33 +102,66 @@ frontend https
 backend kubeapi-main
     balance source
     mode tcp
-    server $cluster_id-bootstrap 192.168.111.10:6443 check
-    server $cluster_id-master-0  192.168.111.11:6443 check
-    server $cluster_id-master-1  192.168.111.12:6443 check
-    server $cluster_id-master-2  192.168.111.13:6443 check
-
-backend mcs-main
-    balance source
-    mode tcp
-    server $cluster_id-bootstrap 192.168.111.10:22623 check
-    server $cluster_id-master-0  192.168.111.11:22623 check
-    server $cluster_id-master-1  192.168.111.12:22623 check
-    server $cluster_id-master-2  192.168.111.13:22623 check
-
-backend http-main
-    balance source
-    mode tcp
-    server $cluster_id-worker-0  192.168.111.50:80 check
-    server $cluster_id-worker-1  192.168.111.51:80 check
-    server $cluster_id-worker-2  192.168.111.52:443 check
-
-backend https-main
-    balance source
-    mode tcp
-    server $cluster_id-worker-0  192.168.111.50:443 check
-    server $cluster_id-worker-1  192.168.111.51:443 check
-    server $cluster_id-worker-2  192.168.111.52:443 check
 EOF
+    {
+        printf "    server %s %s:%s check\n" "$cluster_id-bootstrap" "$BM_IP_BOOTSTRAP" "$HAPROXY_KUBEAPI_PORT"
+        printf "    server %s %s:%s check\n" "$cluster_id-master-0" "$(get_master_bm_ip 0)" "$HAPROXY_KUBEAPI_PORT"
+        if [ -n "${FINAL_VALS[master - 1.spec.bootMACAddress]}" ]; then
+            printf "    server %s %s:%s check\n" "$cluster_id-master-1" "$(get_master_bm_ip 1)" "$HAPROXY_KUBEAPI_PORT"
+        fi
+
+        if [ -n "${FINAL_VALS[master - 2.spec.bootMACAddress]}" ]; then
+            printf "    server %s %s:%s check\n" "$cluster_id-master-2" "$(get_master_bm_ip 2)" "$HAPROXY_KUBEAPI_PORT"
+        fi
+        printf "\n"
+
+        printf "backend mcs-main\n"
+        printf "    balance source\n"
+        printf "    mode tcp\n"
+
+        printf "    server %s %s:%s check\n" "$cluster_id-bootstrap" "$BM_IP_BOOTSTRAP" "$HAPROXY_MCS_MAIN_PORT"
+        printf "    server %s %s:%s check\n" "$cluster_id-master-0" "$(get_master_bm_ip 0)" "$HAPROXY_MCS_MAIN_PORT"
+
+        if [ -n "${FINAL_VALS[master - 1.spec.bootMACAddress]}" ]; then
+            printf "    server %s %s:%s check\n" "$cluster_id-master-1" "$(get_master_bm_ip 1)" "$HAPROXY_MCS_MAIN_PORT"
+        fi
+
+        if [ -n "${FINAL_VALS[master - 2.spec.bootMACAddress]}" ]; then
+            printf "    server %s %s:%s check\n" "$cluster_id-master-2" "$(get_master_bm_ip 2)" "$HAPROXY_MCS_MAIN_PORT"
+        fi
+        printf "\n"
+
+        printf "backend http-main\n"
+        printf "    balance source\n"
+        printf "    mode tcp\n"
+        printf "    server %s-worker-0 %s:%s check\n" "$cluster_id" "$(get_worker_bm_ip 0)" "80"
+
+        # HARDCODED VALUE... SHAME
+        for ((i = 1; i < 100; i++)); do
+            m="worker-$i"
+            if [ -z "${FINAL_VALS[$m.spec.bootMACAddress]}" ]; then
+                break
+            fi
+            printf "    server %s-worker-%s %s:%s check\n" "$cluster_id" "$m" "$(get_worker_bm_ip $i)" "80"
+        done
+        printf "\n"
+
+        printf "backend https-main\n"
+        printf "    balance source\n"
+        printf "    mode tcp\n"
+        printf "    server %s-worker-0 %s:%s check\n" "$cluster_id" "$(get_worker_bm_ip 0)" "443"
+
+        # HARDCODED VALUE... SHAME
+        for ((i = 1; i < 100; i++)); do
+            m="worker-$i"
+            if [ -z "${FINAL_VALS[$m.spec.bootMACAddress]}" ]; then
+                break
+            fi
+            printf "    server %s %s:%s check\n" "$cluster_id-$m" "$(get_worker_bm_ip $i)" "443"
+        done
+        printf "\n"
+    } >>"$cfg_file"
+
     echo "$cfg_file"
 }
 
@@ -186,15 +221,20 @@ while getopts ":ho:s:m:v" opt; do
         ;;
     esac
 done
+shift $((OPTIND - 1))
 
 if [ "$#" -ne 1 ]; then
     usage
 fi
 
+COMMAND=$1
+shift
+
 if [[ -z "$PROJECT_DIR" ]]; then
     usage
     exit 1
 fi
+
 # shellcheck disable=SC1090
 source "$PROJECT_DIR/scripts/cluster_map.sh"
 
@@ -220,8 +260,6 @@ parse_manifests "$manifest_dir"
 
 map_cluster_vars
 
-COMMAND=$1
-shift
 case "$COMMAND" in
 build)
     ofile=$(gen_config_haproxy "$out_dir")
@@ -267,8 +305,8 @@ stop)
     cid=$(podman stop "$HAPROXY_CONTAINTER_NAME") && printf "Stopped %s\n" "$cid"
     ;;
 remove)
-    podman stop "$HAPROXY_CONTAINTER_NAME" 2>/dev/null && podman rm "$HAPROXY_CONTAINTER_NAME" > /dev/null
-    image_id=$(podman images | grep $HAPROXY_IMAGE_NAME | awk '{print $3}') && podman rmi "$image_id" > /dev/null
+    podman stop "$HAPROXY_CONTAINTER_NAME" 2>/dev/null && podman rm "$HAPROXY_CONTAINTER_NAME" >/dev/null
+    image_id=$(podman images | grep $HAPROXY_IMAGE_NAME | awk '{print $3}') && podman rmi "$image_id" >/dev/null
     ;;
 
 *)
