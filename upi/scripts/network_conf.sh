@@ -33,6 +33,15 @@ get_master_bm_ip() {
     echo "$res"
 }
 
+get_worker_bm_ip() {
+    id="$1"
+
+    id=$(( "$id" + "$BM_IP_WORKER_START_OFFSET" ))
+    res="$(nthhost "$BM_IP_CIDR" "$id")"
+
+    echo "$res"
+}
+
 # DO NOT CHANGE BELOW THIS LINE
 
 export PROV_IP_CIDR_DEFAULT="172.22.0.0/24"
@@ -73,5 +82,5 @@ export BM_IP_NS
 BM_IP_MASTER_START_OFFSET=11
 export BM_IP_MASTER_START_OFFSET
 
-BM_IP_WORKER_START=$(nthhost "${BM_IP_CIDR:-BM_IP_CIDR_DEFAULT}" 20) # 192.168.111.20
-export BM_IP_WORKER_START
+BM_IP_WORKER_START_OFFSET=20
+export BM_IP_WORKER_START_OFFSET
