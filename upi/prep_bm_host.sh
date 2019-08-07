@@ -6,7 +6,7 @@
 ### Need interface input from user via environment ###
 ###------------------------------------------------###
 
-source prep_bm_host.src
+source cluster/prep_bm_host.src
 
 printf "\nChecking parameters...\n\n"
 
@@ -33,8 +33,7 @@ source "scripts/utils.sh"
 ### Call gen_*.sh scripts second! ###
 ###-------------------------------###
 
-./gen_dnsmasq.sh
-./gen_haproxy.sh
+# ?
 
 ###---------------------------------------------###
 ### Configure provisioning interface and bridge ###
@@ -255,17 +254,16 @@ fi
 
 printf "\nStarting haproxy container...\n\n"
 
-HAPROXY_CONTAINER=`podman ps | grep haproxy`
-
-if [[ -z "$HAPROXY_CONTAINER" ]]; then
-    podman run -d --name haproxy --net=host -p 80:80 -p 443:443 -p 6443:6443 -p 22623:22623 $HAPROXY_IMAGE_ID -f /usr/local/etc/haproxy/haproxy.cfg
-fi
+./scripts/gen_haproxy.sh build
+./scripts/gen_haproxy.sh start
 
 ###--------------------------------------###
 ### Start provisioning dnsmasq container ###
 ###--------------------------------------###
 
 printf "\nStarting provisioning dnsmasq container...\n\n"
+
+./scripts/gen_config_prov.sh
 
 DNSMASQ_PROV_CONTAINER=`podman ps | grep dnsmasq-prov`
 
@@ -281,6 +279,8 @@ fi
 ###-----------------------------------###
 
 printf "\nStarting baremetal dnsmasq container...\n\n"
+
+./scripts/gen_config_bm.sh
 
 DNSMASQ_BM_CONTAINER=`podman ps | grep dnsmasq-bm`
 
