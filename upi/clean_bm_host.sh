@@ -4,7 +4,7 @@
 ### Need interface input from user via environment ###
 ###------------------------------------------------###
 
-source prep_bm_host.src
+source cluster/prep_bm_host.src
 
 printf "\nChecking parameters...\n\n"
 
@@ -17,6 +17,17 @@ for i in PROV_INTF PROV_BRIDGE BM_INTF BM_BRIDGE; do
         echo $i": "${!i}
     fi
 done
+
+###------------------------------###
+### Source helper scripts first! ###
+###------------------------------###
+
+# shellcheck disable=SC1091
+source "common.sh"
+# shellcheck disable=SC1091
+source "scripts/network_conf.sh"
+# shellcheck disable=SC1091
+source "scripts/utils.sh"
 
 ###--------------------------------------------------------------------###
 ### Bring down interfaces and bridges, and delete their network config ###
@@ -51,17 +62,7 @@ fi
 
 printf "\nRemoving HAProxy container and image...\n\n"
 
-HAPROXY_CONTAINER=`podman ps -a | grep haproxy`
-
-if [[ -z "$HAPROXY_CONTAINER" ]]; then
-    podman rm -f $HAPROXY_CONTAINER
-fi
-
-HAPROXY_IMAGE_ID=`podman images | grep akraino-haproxy | awk {'print $3'}`
-
-if [[ ! -z "$HAPROXY_IMAGE_ID" ]]; then
-    podman rmi -f $HAPROXY_IMAGE_ID
-fi
+./scripts/gen_haproxy.sh remove
 
 ###---------------------------------------###
 ### Remove provisioning dnsmasq container ###
@@ -71,8 +72,8 @@ printf "\nRemoving provisioning dnsmasq container...\n\n"
 
 DNSMASQ_PROV_CONTAINER=`podman ps -a | grep dnsmasq-prov`
 
-if [[ -z "$DNSMASQ_PROV_CONTAINER" ]]; then
-    podman rm -f $DNSMASQ_PROV_CONTAINER
+if [[ ! -z "$DNSMASQ_PROV_CONTAINER" ]]; then
+    podman rm -f dnsmasq-prov
 fi
 
 ###------------------------------------###
@@ -83,8 +84,8 @@ printf "\nRemoving baremetal dnsmasq container...\n\n"
 
 DNSMASQ_BM_CONTAINER=`podman ps -a | grep dnsmasq-bm`
 
-if [[ -z "$DNSMASQ_BM_CONTAINER" ]]; then
-    podman rm -f $DNSMASQ_BM_CONTAINER
+if [[ ! -z "$DNSMASQ_BM_CONTAINER" ]]; then
+    podman rm -f dnsmasq-bm
 fi
 
 ###--------------------------------------###
@@ -95,8 +96,8 @@ printf "\nRemoving matchbox container and assets...\n\n"
 
 MATCHBOX_CONTAINER=`podman ps -a | grep matchbox`
 
-if [[ -z "$MATCHBOX_CONTAINER" ]]; then
-    podman rm -f $MATCHBOX_CONTAINER
+if [[ ! -z "$MATCHBOX_CONTAINER" ]]; then
+    podman rm -f matchbox
 fi
 
 if [[ -d "/var/lib/matchbox/assets" ]]; then
@@ -111,8 +112,8 @@ printf "\nRemoving coredns container...\n\n"
 
 COREDNS_CONTAINER=`podman ps -a | grep coredns`
 
-if [[ -z "$COREDNS_CONTAINER" ]]; then
-    podman rm -f $COREDNS_CONTAINER
+if [[ ! -z "$COREDNS_CONTAINER" ]]; then
+    podman rm -f coredns
 fi
 
 ###-----------------------------------###
@@ -181,12 +182,12 @@ if [[ -f "~/.terraform.d" ]]; then
     sudo rm -rf ~/.terraform.d
 fi
 
-###-----------------------------------------------------###
-### Remove Git, Podman, Unzip, Ipmitool, Dnsmasq and Yq ###
-###-----------------------------------------------------###
+###------------------------------------------------------------------------------###
+### Remove Git, Podman, Unzip, Ipmitool, Dnsmasq, Bridge-Utils, Epel, Pip and Jq ###
+###------------------------------------------------------------------------------###
 
 printf "\nRemoving dependencies via yum...\n\n"
 
-sudo yum remove -y git podman unzip ipmitool dnsmasq yq
+sudo yum remove -y git podman unzip ipmitool dnsmasq bridge-utils epel-release python-pip jq
 
 printf "\nDONE\n"
