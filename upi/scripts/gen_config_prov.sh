@@ -50,14 +50,14 @@ gen_config_prov() {
     cat <<EOF >"$out_file"
 # This config file is intended for use with a container instance of dnsmasq
 
-echo "The container should be run as follows with the generated dnsmasq.conf file"
-echo "placed in $etc_dir/"
-echo "log and leasefiles will be located in $var_dir/"
-echo "# podman run -d --name dnsmasq-prov --net=host -v $var_dir:/var/run/dnsmasq:Z \\"
-echo "#  -v $etc_dir:/etc/dnsmasq.d:Z \\"
-echo "#  --expose=53 --expose=53/udp --expose=67 --expose=67/udp --expose=69 --expose=69/udp \\"
-echo "#  --cap-add=NET_ADMIN quay.io/poseidon/dnsmasq \\
-echo "#  --conf-file=/etc/dnsmasq.d/dnsmasq.conf -u root -d -q"
+# The container should be run as follows with the generated dnsmasq.conf file"
+# placed in $etc_dir/"
+# log and leasefiles will be located in $var_dir/"
+# podman run -d --name dnsmasq-prov --net=host -v $var_dir:/var/run/dnsmasq:Z \\"
+#  -v $etc_dir:/etc/dnsmasq.d:Z \\"
+#  --expose=53 --expose=53/udp --expose=67 --expose=67/udp --expose=69 --expose=69/udp \\"
+#  --cap-add=NET_ADMIN quay.io/poseidon/dnsmasq \\
+#  --conf-file=/etc/dnsmasq.d/dnsmasq.conf -u root -d -q"
 
 port=0 # do not activate nameserver
 interface=$intf
