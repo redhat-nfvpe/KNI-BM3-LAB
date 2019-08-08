@@ -157,4 +157,4 @@ out_dir=$(realpath "$out_dir")
 manifest_dir=${manifest_dir:-$PROJECT_DIR/cluster}
 manifest_dir=$(realpath "$manifest_dir")
 
-gen_config_prov "$PROV_INTF" "$out_dir" 
+gen_config_prov "$PROV_BRIDGE" "$out_dir" 

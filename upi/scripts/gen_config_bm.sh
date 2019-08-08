@@ -198,5 +198,5 @@ parse_manifests "$manifest_dir"
 
 map_cluster_vars
 
-gen_config_bm "$PROV_INTF" "$out_dir"
+gen_config_bm "$PROV_BRIDGE" "$out_dir"
 gen_hostfile_bm "$out_dir" 
