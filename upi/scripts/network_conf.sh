@@ -1,6 +1,6 @@
-#!/bin/bash 
+#!/bin/bash
 
-# 
+#
 # This function generates an IP address given as network CIDR and an offset
 # nthhost(192.168.111.0/24,3) => 192.168.111.3
 #
@@ -27,7 +27,7 @@ get_master_bm_ip() {
         printf "%s: Invalid master index %s" "${FUNCNAME[0]}" "$id"
         exit 1
     fi
-    id="$id$BM_IP_MASTER_START_OFFSET"
+    id="$id + $BM_IP_MASTER_START_OFFSET"
     res="$(nthhost "$BM_IP_CIDR" "$id")"
 
     echo "$res"
@@ -36,7 +36,7 @@ get_master_bm_ip() {
 get_worker_bm_ip() {
     id="$1"
 
-    id="$id$BM_IP_WORKER_START_OFFSET"
+    id="$id + $BM_IP_WORKER_START_OFFSET"
     res="$(nthhost "$BM_IP_CIDR" "$id")"
 
     echo "$res"
@@ -61,20 +61,20 @@ PROV_IP_ADDR=$(nthhost "${PROV_IP_CIDR:-PROV_IP_CIDR_DEFAULT}" 1)
 export PROV_IP_ADDR
 PROV_IP_IPXE_URL=$(nthhost "${PROV_IP_CIDR:-PROV_IP_CIDR_DEFAULT}" 10)": 8080" # 172.22.0.10
 export PROV_IP_IPXE_URL
-PROV_IP_RANGE_START=$(nthhost "${PROV_IP_CIDR:-PROV_IP_CIDR_DEFAULT}" 11)    # 172.22.0.11
+PROV_IP_RANGE_START=$(nthhost "${PROV_IP_CIDR:-PROV_IP_CIDR_DEFAULT}" 11) # 172.22.0.11
 export PROV_IP_RANGE_START
-PROV_IP_RANGE_END=$(nthhost "${PROV_IP_CIDR:-PROV_IP_CIDR_DEFAULT}" 30)      # 172.22.0.30
+PROV_IP_RANGE_END=$(nthhost "${PROV_IP_CIDR:-PROV_IP_CIDR_DEFAULT}" 30) # 172.22.0.30
 export PROV_IP_RANGE_END
 
 export BM_IP_CIDR
-BM_IP_RANGE_START=$(nthhost "${BM_IP_CIDR:-BM_IP_CIDR_DEFAULT}" 10)  # 192.168.111.10
+BM_IP_RANGE_START=$(nthhost "${BM_IP_CIDR:-BM_IP_CIDR_DEFAULT}" 10) # 192.168.111.10
 export BM_IP_RANGE_START
-BM_IP_RANGE_END=$(nthhost "${BM_IP_CIDR:-BM_IP_CIDR_DEFAULT}" 60)    # 192.168.111.60
+BM_IP_RANGE_END=$(nthhost "${BM_IP_CIDR:-BM_IP_CIDR_DEFAULT}" 60) # 192.168.111.60
 export BM_IP_RANGE_END
-BM_IP_BOOTSTRAP=$(nthhost "${BM_IP_CIDR:-BM_IP_CIDR_DEFAULT}" 10)    # 192.168.111.10
+BM_IP_BOOTSTRAP=$(nthhost "${BM_IP_CIDR:-BM_IP_CIDR_DEFAULT}" 10) # 192.168.111.10
 export BM_IP_BOOTSTRAP
 
-BM_IP_NS=$(nthhost "${BM_IP_CIDR:-BM_IP_CIDR_DEFAULT}" 1)            # 192.168.111.1
+BM_IP_NS=$(nthhost "${BM_IP_CIDR:-BM_IP_CIDR_DEFAULT}" 1) # 192.168.111.1
 export BM_IP_NS
 
 BM_IP_MASTER_START_OFFSET=11
