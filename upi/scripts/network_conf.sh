@@ -57,8 +57,6 @@ export BM_ETC_DIR
 BM_VAR_DIR="bm/var/run/dnsmasq"
 export BM_VAR_DIR
 
-
-export PROV_IP_ADDR
 PROV_IP_ADDR=$(nthhost "${PROV_IP_CIDR:-PROV_IP_CIDR_DEFAULT}" 1)
 export PROV_IP_ADDR
 PROV_IP_IPXE_URL=$(nthhost "${BM_IP_CIDR:-PROV_IP_CIDR_DEFAULT}" 10)": 8080" # 172.22.0.10

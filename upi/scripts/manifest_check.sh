@@ -5,10 +5,12 @@
 regex_filename="^([-_A-Za-z0-9]+)$"
 regex_pos_int="^([0-9]+$)"
 regex_mac_address="^(([a-fA-F0-9]{2}:){5}[a-fA-F0-9]{2}$)"
+regex_ip_address="^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$"
 
 declare -A MANIFEST_CHECK=(
     [BareMetalHost.req.metadata.name]="^(master-[012]{1}$|worker-[012]{1}$)|^(bootstrap$)"
     [BareMetalHost.opt.metadata.annotations.kni.io / sdnNetworkMac]="$regex_mac_address"
+    [BareMetalHost.opt.metadata.annotations.kni.io / sdnIPv4]="$regex_ip_address"
     [BareMetalHost.req.spec.bootMACAddress]="$regex_mac_address"
     [BareMetalHost.req.spec.bmc.address]="ipmi://([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$)"
     [BareMetalHost.req.spec.bmc.credentialsName]="$regex_filename"

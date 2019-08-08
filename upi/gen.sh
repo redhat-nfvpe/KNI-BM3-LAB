@@ -73,20 +73,12 @@
 
 usage() {
     cat <<EOM
-    Generate configuration files for either the provisioning interface or the
-    baremetal interface. Files created:
-       provisioning: dnsmasq.conf
-       baremetal: dnsmasq.conf, dnsmasq.conf
 
-    Usage:
-     $(basename "$0") [common_options] prov
-        Generate config files for the provisioning interface
+     $(basename "$0") [common_options] cluster
+        Generate cluster (master) config files for terraform
 
-     $(basename "$0") [common_options] bm
-        Generate config files for the baremetal interface
-
-     $(basename "$0") [common_options] manifests
-        Generate config files for terraform
+     $(basename "$0") [common_options] workers
+        Generate worker config files for terraform
 
     common_options
         -m manifest_dir -- Location of manifest files that describe the deployment.
@@ -112,7 +104,7 @@ gen_terraform_cluster() {
     printf "Generating...%s]\n" "$ofile"
 
     printf "// AUTOMATICALLY GENERATED -- Do not edit\n" | sudo tee "$ofile"
-    
+
     for key in "${sorted[@]}"; do
         printf "%s = \"%s\"\n" "$key" "${FINAL_VALS[$key]}" | sudo tee -a "$ofile"
         #printf '%s matches with %s\n' "$key" "${CLUSTER_MAP[$key]}"
@@ -128,6 +120,10 @@ gen_terraform_cluster() {
     num_masters="${FINAL_VALS[master_count]}"
     for ((i = 0; i < num_masters; i++)); do
         m="master-$i"
+        if [[ -z ${FINAL_VALS[$m.metadata.name]} ]]; then
+            printf "\n Missing manifest data for %s, %d masters(replicas) were specified in install-config.yaml\n" "$m" "$num_masters"
+            exit 1
+        fi
         printf "    name: \"%s\"\n" "${FINAL_VALS[$m.metadata.name]}" | sudo tee -a "$ofile"
         printf "    public_ipv4: \"%s\"\n" "$(get_master_bm_ip $i)" | sudo tee -a "$ofile"
         printf "    ipmi_host: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.address]}" | sudo tee -a "$ofile"
@@ -135,9 +131,9 @@ gen_terraform_cluster() {
         printf "    ipmi_pass: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.password]}" | sudo tee -a "$ofile"
         printf "    mac_address: \"%s\"\n" "${FINAL_VALS[$m.spec.bootMACAddress]}" | sudo tee -a "$ofile"
 
+        printf "  },\n" | sudo tee -a "$ofile"
     done
 
-    printf "  }\n" | sudo tee -a "$ofile"
     printf "]\n" | sudo tee -a "$ofile"
 
     #master_nodes = [
@@ -245,9 +241,6 @@ shift $((OPTIND - 1))
 source "common.sh"
 
 # shellcheck disable=SC1091
-source "scripts/network_conf.sh"
-
-# shellcheck disable=SC1091
 source "scripts/manifest_check.sh"
 # shellcheck disable=SC1091
 source "scripts/utils.sh"
@@ -274,38 +267,17 @@ base_dir=$(realpath "$base_dir")
 prep_host_setup_src=${prep_host_setup_src:-$manifest_dir/prep_bm_host.src}
 parse_prep_bm_host_src "$prep_host_setup_src"
 
+# shellcheck disable=SC1091
+source "scripts/network_conf.sh"
+
 parse_manifests "$manifest_dir"
 
 command=$1
 shift # Remove 'prov|bm' from the argument list
 case "$command" in
 # Parse options to the install sub command
-prov)
-    # Process package options
-    while getopts ":t:" opt; do
-        case ${opt} in
-        t)
-            target=$OPTARG
-            ;;
-        \?)
-            echo "Invalid Option: -$OPTARG" 1>&2
-            exit 1
-            ;;
-            #        : )
-            #          echo "Invalid Option: -$OPTARG requires an argument" 1>&2
-            #          exit 1
-            #          ;;
-        esac
-    done
-    shift $((OPTIND - 1))
 
-    "$PROJECT_DIR"/scripts/gen_config_prov.sh
-    ;;
-bm)
-    "$PROJECT_DIR"/scripts/gen_config_bm.sh
-    ;;
-
-manifests)
+cluster)
     map_cluster_vars
     gen_terraform_cluster "$terraform_dir"
     ;;

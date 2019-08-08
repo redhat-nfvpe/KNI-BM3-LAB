@@ -3,7 +3,8 @@ kind: BareMetalHost
 metadata:
   name: bootstrap
   annotations:
-#    kni.io/sdnNetworkMac: ""
+    kni.io/sdnNetworkMac: "52:54:00:82:68:3d" 
+#    kni.io/sdnIPv4: 192.168.111.10
 spec:
   externallyProvisioned: true
   online: true

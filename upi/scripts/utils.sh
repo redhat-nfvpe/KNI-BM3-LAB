@@ -13,6 +13,8 @@ if [[ -z "$PROJECT_DIR" ]]; then
     exit 1
 fi
 
+#set -x
+
 # shellcheck disable=SC1090
 source "$PROJECT_DIR/scripts/manifest_check.sh"
 
@@ -120,53 +122,115 @@ parse_manifests() {
             [[ "$VERBOSE" =~ true ]] && printf "\tALL_VARS[%s] == \"%s\"\n" "$val" "${manifest_vars[$v]}"
         done
     done
-
-    for v in "${!ALL_VARS[@]}"; do
-        [[ "$VERBOSE" =~ true ]] && echo "$v : ${ALL_VARS[$v]}"
-    done
 }
 
 process_rule() {
     local rule="$1"
+    local index="$2"
+    # index = master-\\1.spec.bmc.user
 
-    [[ "$VERBOSE" =~ true ]] && printf "Apply map-rule: \"%s\"\n" "$rule"
-        # Map rules that start with % indicate that the value for the
-        mapped_val="unknown"
-        if [[ $rule =~ ^\% ]]; then
-            rule=${rule/#%/}     # Remove beginning %
-            ref_path=${rule/%@/} # Remove any trailing @ (base64)
-            # Allow for indirect references to other manifests...
-            if [[ $rule =~ \[([-_A-Za-z0-9]+)\] ]]; then
-                ref_field="${BASH_REMATCH[1]}"
-                [[ $rule =~ ([^\[]+).*$ ]] && ref="${BASH_REMATCH[1]}$ref_field"
-                if [[ ! ${ALL_VARS[$ref]} ]]; then
-                    printf "Indirect ref in rule \"%s\" failed...\n" "$rule"
-                    printf "\"%s\" does not exist...\n" "$ref"
-                    exit 1
-                fi
-                ref="${ALL_VARS[$ref]}"
-                [[ $rule =~ [^\]]+\]([^@]+) ]] && ref_path="$ref${BASH_REMATCH[1]}"
-                if [[ ! ${ALL_VARS[$ref_path]} ]]; then
-                    printf "Indirect ref in rule \"%s\" failed...\n" "$rule"
-                    printf "\"%s\" does not exist...\n" "$ref_path"
-                    exit 1
-                fi
-            fi
-            if [[ $rule =~ .*@$ ]]; then
-                mapped_val=$(echo "${ALL_VARS[$ref_path]}" | base64 -d)
-            else
-                mapped_val="${ALL_VARS[$ref_path]}"
-            fi
-        else
-            # static mapping
-            mapped_val="$rule"
-            ref_path="constant"
+    [[ "$VERBOSE" =~ true ]] && printf "%s --> \"%s\"\n" "$index" "$rule"
+
+    # rule = %master-([012]+).spec.bmc.[credentialsName].stringdata.username@ (indirect)
+    # rule = =master-([012]+).metadata.name=$BM_IP_NS (constant)
+    [[ $rule =~ .*@$ ]] && base64=true || base64=false
+    rule=${rule%@}
+    # rule = %master-([012]+).spec.bmc.[credentialsName].stringdata.username
+    [[ $rule =~ ^%.* ]] && lookup=true || lookup=false
+    rule=${rule#%}
+    # rule = master-([012]+).spec.bmc.[credentialsName].stringdata.username
+    [[ $rule =~ ^=.* ]] && constant=true || constant=false
+    rule=${rule#=}
+    # rule  = master-([012]+).metadata.name=$BM_IP_NS (constant)
+    # index = master-\\1.metadata.ns                  (constant)
+
+    indirect=false
+    if [[ $rule =~ ^(.*)\.\[([a-zA-Z_-]+)\]\.(.+) ]]; then
+        indirect=true
+        # This map rule contains an indirection [ ... ]
+        # Capture the indirection...
+        # index = master-\\1.spec.bmc.user
+        # rule = master-([012]+).spec.bmc.[credentialsName].stringdata.username
+        ref_field="${BASH_REMATCH[2]}"
+        # ref_field = credentialsName
+        rule="${BASH_REMATCH[1]}.$ref_field"
+        # rule = master-([012]+).spec.bmc.credentialsName
+        # rule = bootstrap.spec.bmc.credentialsName
+        postfix="${BASH_REMATCH[3]}"
+        # postfix = stringdata.username
+    elif [ "$constant" = true ]; then
+        if [[ ! $rule =~ =(.*)$ ]]; then
+            printf "Invalid rule: %s\n" "$rule"
+            exit 1
         fi
-        
-        FINAL_VALS[$v]="$mapped_val"
+        value="${BASH_REMATCH[1]}"
+        rule=${rule%=*}
 
-        [[ "$VERBOSE" =~ true ]] && printf "\tFINAL_VALS[%s] = \"%s\"\n" "$v" "$mapped_val"
+        if [[ -z "$rule" ]]; then
+            FINAL_VALS[$index]="$value"
+
+            [[ "$VERBOSE" =~ true ]] && printf "\tFINAL_VALS[%s] = \"%s\"\n" "$index" "$value"
+
+            return
+        fi
+    fi
+
+    # loop through all the manifest variables searching
+    # for a match with the rule's index
+    # if one is found process it.
+    for v in "${!ALL_VARS[@]}"; do
+        # The $rule is used to match against every key in ALL_VARS[@]
+        # If there is a match, the pattern in $index is updated
+        # For fixed entries like "bootstrap_memory_gb", nothing is changed
+        # or for non-constant master-\\1.metadata.name => master-0.metadata.name
+        regex="s/$rule/$index/p"
+        if ! r=$(echo "$v" | sed -nre "$regex"); then
+            printf "Error processing %s\n" "$rule"
+            exit 1
+        fi
+        # Did we find a match?
+        if [ -n "$r" ]; then
+
+            [[ "$VERBOSE" =~ true ]] && printf "\tMatch Index(%s)  var(%s) rule(%s) \n" "$index" "$v" "$r"
+
+            # Make sure there is a value for this key
+            if [[ ! ${ALL_VARS[$v]} ]]; then
+                printf "Key with no value for key \"%s\" failed...\n" "$v"
+                exit 1
+            fi
+
+            if [ "$indirect" = true ]; then
+                field="${ALL_VARS[$v]}"
+                # field = ha-lab-impi-creds
+                field="$field.$postfix"
+                # field = ha-lab-impi-creds.stringdata.username
+                if [[ ! ${ALL_VARS[$field]} ]]; then
+                    printf "Indirect ref \"%s\" in rule \"%s\" failed...\n" "$field" "$rule"
+                    exit 1
+                fi
+                if [[ "$base64" == true ]]; then
+                    mapped_val=$(echo "${ALL_VARS[$field]}" | base64 -d)
+                else
+                    mapped_val="${ALL_VARS[$field]}"
+                fi
+            elif [ "$lookup" = true ]; then
+                if [[ "$base64" == true ]]; then
+                    mapped_val=$(echo "${ALL_VARS[$v]}" | base64 -d)
+                else
+                    mapped_val="${ALL_VARS[$v]}"
+                fi
+            elif [ "$constant" = true ]; then
+                mapped_val="$value"
+            fi
+
+            FINAL_VALS[$r]="$mapped_val"
+
+            [[ "$VERBOSE" =~ true ]] && printf "\tFINAL_VALS[%s] = \"%s\"\n" "$r" "$mapped_val"
+
+        fi
+    done
 }
+
 map_cluster_vars() {
 
     # shellcheck disable=SC1091
@@ -188,20 +252,59 @@ map_cluster_vars() {
     # Generate the cluster terraform values for the fixed
     # variables
     #
+    local v
+
     for v in "${!CLUSTER_MAP[@]}"; do
         rule=${CLUSTER_MAP[$v]}
 
-        process_rule "$rule"
+        process_rule "$rule" "$v"
     done
 
-        # Generate the cluster terraform values for the master nodes
+    # Generate the cluster terraform values for the master nodes
     #
     for v in "${!CLUSTER_MASTER_MAP[@]}"; do
         rule=${CLUSTER_MASTER_MAP[$v]}
 
-        process_rule "$rule"
+        process_rule "$rule" "$v"
+    done
+}
+
+map_worker_vars() {
+
+    # shellcheck disable=SC1091
+    source scripts/cluster_map.sh
+
+    # The keys in the following associative array
+    # specify varies to be emitted in the terraform vars file.
+    # the associated value contains
+    #  1. A static string value
+    #  2. A string with ENV vars that have been previously defined
+    #  3. A string prepended with '%' to indicate the final value is
+    #     located in the ALL_VARS array
+    #  4. ALL_VARS references may contain path.[field].field
+    #     i.e. bootstrap.spec.bmc.[credentialsName].password
+    #     in this instance [name].field references another manifest file
+    #  5. If a rule ends with an '@', the field will be base64 decoded
+    #
+
+    # Generate the cluster terraform values for the fixed
+    # variables
+    #
+    local v
+
+    for v in "${!CLUSTER_MAP[@]}"; do
+        rule=${CLUSTER_MAP[$v]}
+
+        process_rule "$rule" "$v"
     done
 
+    # Generate the cluster terraform values for the master nodes
+    #
+    for v in "${!CLUSTER_MASTER_MAP[@]}"; do
+        rule=${CLUSTER_MASTER_MAP[$v]}
+
+        process_rule "$rule" "$v"
+    done
 }
 
 check_var() {

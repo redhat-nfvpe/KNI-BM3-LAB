@@ -32,7 +32,6 @@ usage() {
 EOM
 }
 
-
 gen_hostfile_bm() {
     out_dir=$1
 
@@ -43,44 +42,43 @@ gen_hostfile_bm() {
 
     cid="${FINAL_VALS[cluster_id]}"
     cdomain="${FINAL_VALS[cluster_domain]}"
-    echo "${FINAL_VALS[bootstrap_mac_address]},$BM_IP_BOOTSTRAP,$cid-bootstrap-0.$cdomain" > "$hostsfile"
 
-    echo "${FINAL_VALS[master-0.spec.bootMACAddress]},$(get_master_bm_ip 0),$cid-master-0.$cdomain" >> "$hostsfile"
+    echo "${FINAL_VALS[bootstrap_sdn_mac_address]},$BM_IP_BOOTSTRAP,$cid-bootstrap-0.$cdomain" >"$hostsfile"
 
-    if [ -n "${FINAL_VALS[master-1.spec.bootMACAddress]}" ] && [ -z "${FINAL_VALS[master-2.spec.bootMACAddress]}" ]; then
+    echo "${FINAL_VALS[master-0.spec.public_mac]},$(get_master_bm_ip 0),$cid-master-0.$cdomain" >>"$hostsfile"
+
+    if [ -n "${FINAL_VALS[master - 1.spec.public_mac]}" ] && [ -z "${FINAL_VALS[master - 2.spec.public_mac]}" ]; then
         echo "Both master-1 and master-2 must be set."
         exit 1
     fi
 
-    if [ -z "${FINAL_VALS[master-1.spec.bootMACAddress]}" ] && [ -n "${FINAL_VALS[master-2.spec.bootMACAddress]}" ]; then
+    if [ -z "${FINAL_VALS[master - 1.spec.public_mac]}" ] && [ -n "${FINAL_VALS[master - 2.spec.public_mac]}" ]; then
         echo "Both master-1 and master-2 must be set."
         exit 1
     fi
 
-    if [ -n "${FINAL_VALS[master-1.spec.bootMACAddress]}" ] && [ -n "${FINAL_VALS[master-2.spec.bootMACAddress]}" ]; then
-        echo "${FINAL_VALS[master-1.spec.bootMACAddress]},$BM_IP_MASTER_1,$cid-master-1.$cdomain" >> "$hostsfile"
-        echo "${FINAL_VALS[master-2.spec.bootMACAddress]},$BM_IP_MASTER_2,$cid-master-2.$cdomain" >> "$hostsfile"
+    if [ -n "${FINAL_VALS[master - 1.spec.public_mac]}" ] && [ -n "${FINAL_VALS[master - 2.spec.public_mac]}" ]; then
+        echo "${FINAL_VALS[master - 1.spec.bootMACAddress]},$BM_IP_MASTER_1,$cid-master-1.$cdomain" >>"$hostsfile"
+        echo "${FINAL_VALS[master - 2.spec.bootMACAddress]},$BM_IP_MASTER_2,$cid-master-2.$cdomain" >>"$hostsfile"
     fi
 
-   # generate hostfile entries for workers
-   # how?
-   #num_masters="${FINAL_VALS[master_count]}"
-   # for ((i = 0; i < num_masters; i++)); do
-   #     m="master-$i"
-   #     printf "    name: \"%s\"\n" "${FINAL_VALS[$m.metadata.name]}" | sudo tee -a "$ofile"
-   #     printf "    public_ipv4: \"%s\"\n" "$(get_master_bm_ip $i)" | sudo tee -a "$ofile"
-   #     printf "    ipmi_host: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.address]}" | sudo tee -a "$ofile"
-   #     printf "    ipmi_user: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.user]}" | sudo tee -a "$ofile"
-   #     printf "    ipmi_pass: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.password]}" | sudo tee -a "$ofile"
-   #     printf "    mac_address: \"%s\"\n" "${FINAL_VALS[$m.spec.bootMACAddress]}" | sudo tee -a "$ofile"
-   # 
-   # done
+    # generate hostfile entries for workers
+    # how?
+    #num_masters="${FINAL_VALS[master_count]}"
+    # for ((i = 0; i < num_masters; i++)); do
+    #     m="master-$i"
+    #     printf "    name: \"%s\"\n" "${FINAL_VALS[$m.metadata.name]}" | sudo tee -a "$ofile"
+    #     printf "    public_ipv4: \"%s\"\n" "$(get_master_bm_ip $i)" | sudo tee -a "$ofile"
+    #     printf "    ipmi_host: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.address]}" | sudo tee -a "$ofile"
+    #     printf "    ipmi_user: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.user]}" | sudo tee -a "$ofile"
+    #     printf "    ipmi_pass: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.password]}" | sudo tee -a "$ofile"
+    #     printf "    mac_address: \"%s\"\n" "${FINAL_VALS[$m.spec.bootMACAddress]}" | sudo tee -a "$ofile"
+    #
+    # done
     cat <<EOF >>"$hostsfile"
-    192.168.111.50,$cid-worker-0.$cdomain
-    192.168.111.51,$cid-worker-1.$cdomain
-
-    # 192.168.111.59,cluster_id-worker-9.cluster_domain
+192.168.111.20,${FINAL_VALS[cluster_id]}-worker-0.${FINAL_VALS[cluster_domain]}
 EOF
+
 }
 
 gen_bm_help() {
@@ -110,7 +108,7 @@ gen_config_bm() {
     local out_file="$etc_dir/dnsmasq.conf"
 
     printf "Generating %s...\n" "$out_file"
-    
+
     cat <<EOF >"$out_file"
 # This config file is intended for use with a container instance of dnsmasq
 
@@ -122,7 +120,7 @@ bind-interfaces
 strict-order
 except-interface=lo
 
-domain=${ALL_VARS[install - config.baseDomain]},$BM_IP_CIDR
+domain=${FINAL_VALS[cluster_domain]},$BM_IP_CIDR
 
 dhcp-range=$BM_IP_RANGE_START,$BM_IP_RANGE_END,30m
 #default gateway
@@ -198,5 +196,5 @@ parse_manifests "$manifest_dir"
 
 map_cluster_vars
 
-gen_config_bm "$PROV_INTF" "$out_dir"
-gen_hostfile_bm "$out_dir" 
+gen_config_bm "$PROV_BRIDGE" "$out_dir"
+gen_hostfile_bm "$out_dir"
