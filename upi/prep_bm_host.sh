@@ -440,12 +440,16 @@ printf "\nInstalling OpenShift binaries...\n\n"
 pushd /tmp
 
 if [[ ! -f "/usr/local/bin/openshift-install" ]]; then
-    # TODO: These versions change without warning!  Need to accomodate for this.
-    curl -O https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-install-linux-4.1.4.tar.gz
-    tar xvf openshift-install-linux-4.1.4.tar.gz
+    # FIXME: This is a cheap hack to get the latest version, but will fail if the
+    # target index page's HTML fields change
+    LATEST_OCP_INSTALLER=`curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/ | grep openshift-install-linux | cut -d '"' -f 8`
+    curl -O https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/$LATEST_OCP_INSTALLER
+    tar xvf $LATEST_OCP_INSTALLER
     sudo mv openshift-install /usr/local/bin/
-    curl -O https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux-4.1.4.tar.gz
-    tar xvf openshift-client-linux-4.1.4.tar.gz
+
+    LATEST_OCP_CLIENT=`curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/ | grep openshift-client-linux | cut -d '"' -f 8`
+    curl -O https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/$LATEST_OCP_CLIENT
+    tar xvf $LATEST_OCP_CLIENT
     sudo mv oc /usr/local/bin/
 fi
 
@@ -459,11 +463,14 @@ if [[ ! -f "/usr/bin/terraform" ]]; then
     curl -O https://releases.hashicorp.com/terraform/0.12.2/terraform_0.12.2_linux_amd64.zip
     unzip terraform_0.12.2_linux_amd64.zip
     sudo mv terraform /usr/bin/.
-    git clone https://github.com/poseidon/terraform-provider-matchbox.git
-    cd terraform-provider-matchbox
-    go build
-    mkdir -p ~/.terraform.d/plugins
-    cp terraform-provider-matchbox ~/.terraform.d/plugins/.
+
+    if [[ ! -d "terraform-provider-matchbox" ]]; then
+        git clone https://github.com/poseidon/terraform-provider-matchbox.git
+        cd terraform-provider-matchbox
+        go build
+        mkdir -p ~/.terraform.d/plugins
+        cp terraform-provider-matchbox ~/.terraform.d/plugins/.
+    fi
 fi
 
 popd
