@@ -122,7 +122,7 @@ bind-interfaces
 strict-order
 except-interface=lo
 
-domain=${ALL_VARS[install - config.baseDomain]},$BM_IP_CIDR
+domain=${ALL_VARS[install-config.baseDomain]},$BM_IP_CIDR
 
 dhcp-range=$BM_IP_RANGE_START,$BM_IP_RANGE_END,30m
 #default gateway
