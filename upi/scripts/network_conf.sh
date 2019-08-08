@@ -27,7 +27,7 @@ get_master_bm_ip() {
         printf "%s: Invalid master index %s" "${FUNCNAME[0]}" "$id"
         exit 1
     fi
-    id=$(( "$id" + "$BM_IP_MASTER_START_OFFSET" ))
+    id="$id$BM_IP_MASTER_START_OFFSET"
     res="$(nthhost "$BM_IP_CIDR" "$id")"
 
     echo "$res"
@@ -36,7 +36,7 @@ get_master_bm_ip() {
 get_worker_bm_ip() {
     id="$1"
 
-    id=$(( "$id" + "$BM_IP_WORKER_START_OFFSET" ))
+    id="$id$BM_IP_WORKER_START_OFFSET"
     res="$(nthhost "$BM_IP_CIDR" "$id")"
 
     echo "$res"

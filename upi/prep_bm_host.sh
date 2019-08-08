@@ -6,7 +6,7 @@
 ### Need interface input from user via environment ###
 ###------------------------------------------------###
 
-source prep_bm_host.src
+source cluster/prep_bm_host.src
 
 printf "\nChecking parameters...\n\n"
 
@@ -25,6 +25,8 @@ done
 ###------------------------------###
 
 # shellcheck disable=SC1091
+source "common.sh"
+# shellcheck disable=SC1091
 source "scripts/network_conf.sh"
 # shellcheck disable=SC1091
 source "scripts/utils.sh"
@@ -33,8 +35,23 @@ source "scripts/utils.sh"
 ### Call gen_*.sh scripts second! ###
 ###-------------------------------###
 
-./gen_dnsmasq.sh
-./gen_haproxy.sh
+# ?
+
+###--------------###
+### Install Epel ###
+###--------------###
+
+printf "\nInstalling epel-release via yum...\n\n"
+
+sudo yum install -y epel-release
+
+###-------------------------------------------------------------------------###
+### Install Git, Podman, Unzip, Ipmitool, Dnsmasq, Bridge-Utils, Pip and Jq ###
+###-------------------------------------------------------------------------###
+
+printf "\nInstalling dependencies via yum...\n\n"
+
+sudo yum install -y git podman unzip ipmitool dnsmasq bridge-utils python-pip jq
 
 ###---------------------------------------------###
 ### Configure provisioning interface and bridge ###
@@ -104,7 +121,11 @@ EOF
 
 cat <<EOF > /etc/sysconfig/network-scripts/ifcfg-$BM_INTF
 TYPE=Ethernet
-NM_CONTROLLED=no
+PROXY_METHOD=none
+BROWSER_ONLY=no
+BOOTPROTO=static
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
 NAME=$BM_INTF
 DEVICE=$BM_INTF
 ONBOOT=yes
@@ -176,13 +197,11 @@ chmod 755 iptables.sh
 ./iptables.sh
 popd
 
-###------------------------------------------------------###
-### Install Git, Podman, Unzip, Ipmitool, Dnsmasq and Yq ###
-###------------------------------------------------------###
+###--------------------###
+### Install Yq via pip ###
+###--------------------###
 
-printf "\nInstalling dependencies via yum...\n\n"
-
-sudo yum install -y git podman unzip ipmitool dnsmasq yq
+sudo pip install yq
 
 ###----------------###
 ### Install Golang ###
@@ -255,10 +274,14 @@ fi
 
 printf "\nStarting haproxy container...\n\n"
 
-HAPROXY_CONTAINER=`podman ps | grep haproxy`
+if ! ./scripts/gen_haproxy.sh build ; then
+    echo "HAProxy container build error.  Exiting!"
+    exit 1
+fi
 
-if [[ -z "$HAPROXY_CONTAINER" ]]; then
-    podman run -d --name haproxy --net=host -p 80:80 -p 443:443 -p 6443:6443 -p 22623:22623 $HAPROXY_IMAGE_ID -f /usr/local/etc/haproxy/haproxy.cfg
+if ! ./scripts/gen_haproxy.sh start ; then
+    echo "HAProxy container start error.  Exiting!"
+    exit 1
 fi
 
 ###--------------------------------------###
@@ -267,11 +290,16 @@ fi
 
 printf "\nStarting provisioning dnsmasq container...\n\n"
 
+if ! ./scripts/gen_config_prov.sh ; then
+    echo "Provisioning dnsmasq container config generation error.  Exiting!"
+    exit 1
+fi
+
 DNSMASQ_PROV_CONTAINER=`podman ps | grep dnsmasq-prov`
 
 if [[ -z "$DNSMASQ_PROV_CONTAINER" ]]; then
-    podman run -d --name dnsmasq-prov --net=host -v dnsmasq/prov/var/run:/var/run/dnsmasq:Z \
-    -v dnsmasq/prov/etc/dnsmasq.d:/etc/dnsmasq.d:Z \
+    podman run -d --name dnsmasq-prov --net=host -v $PROJECT_DIR/dnsmasq/prov/var/run:/var/run/dnsmasq:Z \
+    -v $PROJECT_DIR/dnsmasq/prov/etc/dnsmasq.d:/etc/dnsmasq.d:Z \
     --expose=53 --expose=53/udp --expose=67 --expose=67/udp --expose=69 --expose=69/udp \
     --cap-add=NET_ADMIN quay.io/poseidon/dnsmasq --conf-file=/etc/dnsmasq.d/dnsmasq.conf -u root -d -q
 fi
@@ -282,11 +310,16 @@ fi
 
 printf "\nStarting baremetal dnsmasq container...\n\n"
 
+if ! ./scripts/gen_config_bm.sh ; then
+    echo "Baremetal dnsmasq container config generation error.  Exiting!"
+    exit 1
+fi
+
 DNSMASQ_BM_CONTAINER=`podman ps | grep dnsmasq-bm`
 
 if [[ -z "$DNSMASQ_BM_CONTAINER" ]]; then
-    podman run -d --name dnsmasq-bm --net=host -v dnsmasq/bm/var/run:/var/run/dnsmasq:Z \
-    -v dnsmasq/bm/etc/dnsmasq.d:/etc/dnsmasq.d:Z \
+    podman run -d --name dnsmasq-bm --net=host -v $PROJECT_DIR/dnsmasq/bm/var/run:/var/run/dnsmasq:Z \
+    -v $PROJECT_DIR/dnsmasq/bm/etc/dnsmasq.d:/etc/dnsmasq.d:Z \
     --expose=53 --expose=53/udp --expose=67 --expose=67/udp --expose=69 --expose=69/udp \
     --cap-add=NET_ADMIN quay.io/poseidon/dnsmasq --conf-file=/etc/dnsmasq.d/dnsmasq.conf -u root -d -q
 fi
@@ -340,6 +373,9 @@ fi
 
 printf "\nConfiguring CoreDNS...\n\n"
 
+# FIXME: HACK.  Remove next line after we break this out.
+mkdir -p $PROJECT_DIR/coredns
+
 if [[ ! -f "coredns/Corefile" ]]; then
 cat <<EOF > coredns/Corefile
 .:53 {
@@ -392,7 +428,7 @@ COREDNS_CONTAINER=`podman ps | grep coredns`
 
 if [[ -z "$COREDNS_CONTAINER" ]]; then
     podman run -d --expose=53 --expose=53/udp -p $(nthhost $BM_IP_CIDR 1):53:53 -p $(nthhost $BM_IP_CIDR 1):53:53/udp \
-    -v coredns:/etc/coredns:z --name coredns coredns/coredns:latest -conf /etc/coredns/Corefile
+    -v $PROJECT_DIR/coredns:/etc/coredns:z --name coredns coredns/coredns:latest -conf /etc/coredns/Corefile
 fi
 
 ###----------------------------###
@@ -404,12 +440,16 @@ printf "\nInstalling OpenShift binaries...\n\n"
 pushd /tmp
 
 if [[ ! -f "/usr/local/bin/openshift-install" ]]; then
-    # TODO: These versions change without warning!  Need to accomodate for this.
-    curl -O https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-install-linux-4.1.4.tar.gz
-    tar xvf openshift-install-linux-4.1.4.tar.gz
+    # FIXME: This is a cheap hack to get the latest version, but will fail if the
+    # target index page's HTML fields change
+    LATEST_OCP_INSTALLER=`curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/ | grep openshift-install-linux | cut -d '"' -f 8`
+    curl -O https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/$LATEST_OCP_INSTALLER
+    tar xvf $LATEST_OCP_INSTALLER
     sudo mv openshift-install /usr/local/bin/
-    curl -O https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux-4.1.4.tar.gz
-    tar xvf openshift-client-linux-4.1.4.tar.gz
+
+    LATEST_OCP_CLIENT=`curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/ | grep openshift-client-linux | cut -d '"' -f 8`
+    curl -O https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/$LATEST_OCP_CLIENT
+    tar xvf $LATEST_OCP_CLIENT
     sudo mv oc /usr/local/bin/
 fi
 
@@ -423,11 +463,14 @@ if [[ ! -f "/usr/bin/terraform" ]]; then
     curl -O https://releases.hashicorp.com/terraform/0.12.2/terraform_0.12.2_linux_amd64.zip
     unzip terraform_0.12.2_linux_amd64.zip
     sudo mv terraform /usr/bin/.
-    git clone https://github.com/poseidon/terraform-provider-matchbox.git
-    cd terraform-provider-matchbox
-    go build
-    mkdir -p ~/.terraform.d/plugins
-    cp terraform-provider-matchbox ~/.terraform.d/plugins/.
+
+    if [[ ! -d "terraform-provider-matchbox" ]]; then
+        git clone https://github.com/poseidon/terraform-provider-matchbox.git
+        cd terraform-provider-matchbox
+        go build
+        mkdir -p ~/.terraform.d/plugins
+        cp terraform-provider-matchbox ~/.terraform.d/plugins/.
+    fi
 fi
 
 popd
