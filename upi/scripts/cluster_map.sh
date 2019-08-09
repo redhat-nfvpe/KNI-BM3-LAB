@@ -11,9 +11,6 @@ declare -A CLUSTER_MAP=(
     [matchbox_trusted_ca_cert]="==./matchbox/scripts/tls/ca.crt"
     [matchbox_http_endpoint]="==http://${PROV_IP_ADDR}:8080"
     [matchbox_rpc_endpoint]="==${PROV_IP_ADDR}:8081"
-    #  Should add & to indicate that the following field is relative to the current manifest / object
-    #  Also, | is used as a default value if the annotation is not set
-    #    [pxe_initrd_url]="&metadata.annotations.kni.io/kernel|$DEFAULT_INITRD"
     [pxe_initrd_url]="==$DEFAULT_INITRD"
     [pxe_kernel_url]="==$DEFAULT_KERNEL"
     [pxe_os_image_url]="==http://${PROV_IP_ADDR}:8080/assets/rhcos-4.1.0-x86_64-metal-bios.raw.gz"
@@ -31,8 +28,8 @@ declare -A CLUSTER_MAP=(
     [nameserver]="==${BM_IP_NS}"
     [cluster_id]="%install-config.metadata.name"
     [cluster_domain]="%install-config.baseDomain"
-    [provisioning_interface]="==${PROV_INTF}"
-    [baremetal_interface]="==${BM_INTF}"
+    [provisioning_interface]="==${PROV_BRIDGE}"
+    [baremetal_interface]="==${BM_BRIDGE}"
     [master_count]="%install-config.controlPlane.replicas"
 )
 export CLUSTER_MAP
@@ -56,17 +53,14 @@ declare -A WORKER_MAP=(
     [matchbox_trusted_ca_cert]="==./matchbox/scripts/tls/ca.crt"
     [matchbox_http_endpoint]="==http://${PROV_IP_ADDR}:8080"
     [matchbox_rpc_endpoint]="==${PROV_IP_ADDR}:8081"
-    #  Should add & to indicate that the following field is relative to the current manifest / object
-    #  Also, | is used as a default value if the annotation is not set
-    #    [pxe_initrd_url]="&metadata.annotations.kni.io/kernel|$DEFAULT_INITRD"
     [pxe_initrd_url]="==assets/rhel_initrd.img"
     [pxe_kernel_url]="==assets/rhel_vmlinuz"
-    [worker_kickstart]="http://${PROV_IP_ADDR}:8080/assets/centos-rt-worker-kickstart.cfg"
+    [worker_kickstart]="==http:\/\/${PROV_IP_ADDR}:8080\/assets\/centos-rt-worker-kickstart.cfg"
     [cluster_id]="%install-config.metadata.name"
     [cluster_domain]="%install-config.baseDomain"
     [provisioning_interface]="==${PROV_INTF}"
     [baremetal_interface]="==${BM_INTF}"
-    [worker_count]="%install-config.compute.replicas"
+    [worker_count]="%install-config.compute.0.replicas"
 )
 export WORKER_MAP
 

@@ -235,6 +235,9 @@ if [[ -z "$PROJECT_DIR" ]]; then
     exit 1
 fi
 
+# shellcheck disable=SC1091
+source "common.sh"
+
 # shellcheck disable=SC1090
 source "$PROJECT_DIR/scripts/cluster_map.sh"
 

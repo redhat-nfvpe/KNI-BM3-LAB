@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# ALL_VARS stores key / value pairs from the parsed manifest files
-declare -A ALL_VARS
-export ALL_VARS
-# FINAL_VALS stores ALL_VARS after mapping and manipulation
+# MANIFEST_VALS stores key / value pairs from the parsed manifest files
+declare -A MANIFEST_VALS
+export MANIFEST_VALS
+# FINAL_VALS stores MANIFEST_VALS after mapping and manipulation
 # FINAL_VALS is used to generate terraform files
 declare -A FINAL_VALS
 export FINAL_VALS
@@ -107,19 +107,19 @@ parse_manifests() {
         fi
 
         # Finished the parse
-        # Take all final values and place them in the ALL_VARS
+        # Take all final values and place them in the MANIFEST_VALS
         # array for use by gen_terraform
         for v in "${!manifest_vars[@]}"; do
             # Make entries unique by prepending with manifest object name
             # Should have a uniqueness check here!
             val="$name.$v"
-            if [[ ${ALL_VARS[$val]} ]]; then
+            if [[ ${MANIFEST_VALS[$val]} ]]; then
                 printf "Duplicate Manifest value...\"%s\"\n" "$val"
                 printf "This usually occurs when two manifests have the same metadata.name...\n"
                 exit 1
             fi
-            ALL_VARS[$val]=${manifest_vars[$v]}
-            [[ "$VERBOSE" =~ true ]] && printf "\tALL_VARS[%s] == \"%s\"\n" "$val" "${manifest_vars[$v]}"
+            MANIFEST_VALS[$val]=${manifest_vars[$v]}
+            [[ "$VERBOSE" =~ true ]] && printf "\tMANIFEST_VALS[%s] == \"%s\"\n" "$val" "${manifest_vars[$v]}"
         done
     done
 }
@@ -178,8 +178,8 @@ process_rule() {
     # loop through all the manifest variables searching
     # for a match with the rule's index
     # if one is found process it.
-    for v in "${!ALL_VARS[@]}"; do
-        # The $rule is used to match against every key in ALL_VARS[@]
+    for v in "${!MANIFEST_VALS[@]}"; do
+        # The $rule is used to match against every key in MANIFEST_VALS[@]
         # If there is a match, the pattern in $index is updated
         # For fixed entries like "bootstrap_memory_gb", nothing is changed
         # or for non-constant master-\\1.metadata.name => master-0.metadata.name
@@ -194,30 +194,30 @@ process_rule() {
             [[ "$VERBOSE" =~ true ]] && printf "\tMatch Index(%s)  var(%s) rule(%s) \n" "$index" "$v" "$r"
 
             # Make sure there is a value for this key
-            if [[ ! ${ALL_VARS[$v]} ]]; then
+            if [[ ! ${MANIFEST_VALS[$v]} ]]; then
                 printf "Key with no value for key \"%s\" failed...\n" "$v"
                 exit 1
             fi
 
             if [ "$indirect" = true ]; then
-                field="${ALL_VARS[$v]}"
+                field="${MANIFEST_VALS[$v]}"
                 # field = ha-lab-impi-creds
                 field="$field.$postfix"
                 # field = ha-lab-impi-creds.stringdata.username
-                if [[ ! ${ALL_VARS[$field]} ]]; then
+                if [[ ! ${MANIFEST_VALS[$field]} ]]; then
                     printf "Indirect ref \"%s\" in rule \"%s\" failed...\n" "$field" "$rule"
                     exit 1
                 fi
                 if [[ "$base64" == true ]]; then
-                    mapped_val=$(echo "${ALL_VARS[$field]}" | base64 -d)
+                    mapped_val=$(echo "${MANIFEST_VALS[$field]}" | base64 -d)
                 else
-                    mapped_val="${ALL_VARS[$field]}"
+                    mapped_val="${MANIFEST_VALS[$field]}"
                 fi
             elif [ "$lookup" = true ]; then
                 if [[ "$base64" == true ]]; then
-                    mapped_val=$(echo "${ALL_VARS[$v]}" | base64 -d)
+                    mapped_val=$(echo "${MANIFEST_VALS[$v]}" | base64 -d)
                 else
-                    mapped_val="${ALL_VARS[$v]}"
+                    mapped_val="${MANIFEST_VALS[$v]}"
                 fi
             elif [ "$constant" = true ]; then
                 mapped_val="$value"
@@ -242,8 +242,8 @@ map_cluster_vars() {
     #  1. A static string value
     #  2. A string with ENV vars that have been previously defined
     #  3. A string prepended with '%' to indicate the final value is
-    #     located in the ALL_VARS array
-    #  4. ALL_VARS references may contain path.[field].field
+    #     located in the MANIFEST_VALS array
+    #  4. MANIFEST_VALS references may contain path.[field].field
     #     i.e. bootstrap.spec.bmc.[credentialsName].password
     #     in this instance [name].field references another manifest file
     #  5. If a rule ends with an '@', the field will be base64 decoded
@@ -267,6 +267,19 @@ map_cluster_vars() {
 
         process_rule "$rule" "$v"
     done
+
+    mapfile -d '' sorted < <(printf '%s\0' "${!FINAL_VALS[@]}" | sort -z)
+
+    ofile="$manifest_dir/final_cluster_vals.sh"
+
+    printf "declare -A FINAL_VALS=(\n" >"$ofile"
+
+    for v in "${sorted[@]}"; do
+        printf "  [%s]=\"%s\"\n" "$v" "${FINAL_VALS[$v]}" >>"$ofile"
+    done
+
+    printf ")\n" >>"$ofile"
+    printf "export FINAL_VALS\n" >>"$ofile"
 }
 
 map_worker_vars() {
@@ -280,8 +293,8 @@ map_worker_vars() {
     #  1. A static string value
     #  2. A string with ENV vars that have been previously defined
     #  3. A string prepended with '%' to indicate the final value is
-    #     located in the ALL_VARS array
-    #  4. ALL_VARS references may contain path.[field].field
+    #     located in the MANIFEST_VALS array
+    #  4. MANIFEST_VALS references may contain path.[field].field
     #     i.e. bootstrap.spec.bmc.[credentialsName].password
     #     in this instance [name].field references another manifest file
     #  5. If a rule ends with an '@', the field will be base64 decoded
@@ -292,19 +305,33 @@ map_worker_vars() {
     #
     local v
 
-    for v in "${!CLUSTER_MAP[@]}"; do
-        rule=${CLUSTER_MAP[$v]}
+    for v in "${!WORKER_MAP[@]}"; do
+        rule=${WORKER_MAP[$v]}
 
         process_rule "$rule" "$v"
     done
 
     # Generate the cluster terraform values for the master nodes
     #
-    for v in "${!CLUSTER_MASTER_MAP[@]}"; do
-        rule=${CLUSTER_MASTER_MAP[$v]}
+    for v in "${!CLUSTER_WORKER_MAP[@]}"; do
+        rule=${CLUSTER_WORKER_MAP[$v]}
 
         process_rule "$rule" "$v"
     done
+
+    mapfile -d '' sorted < <(printf '%s\0' "${!FINAL_VALS[@]}" | sort -z)
+
+    ofile="$manifest_dir/final_worker_vals.sh"
+
+    printf "declare -A FINAL_VALS=(\n" >"$ofile"
+
+    for v in "${sorted[@]}"; do
+        printf "  [%s]=\"%s\"\n" "$v" "${FINAL_VALS[$v]}" >>"$ofile"
+    done
+
+    printf ")\n" >>"$ofile"
+    printf "export FINAL_VALS\n" >>"$ofile"
+
 }
 
 check_var() {

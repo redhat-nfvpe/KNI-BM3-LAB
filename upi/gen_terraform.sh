@@ -80,6 +80,9 @@ usage() {
      $(basename "$0") [common_options] workers
         Generate worker config files for terraform
 
+     $(basename "$0") [common_options] all
+        Generate cluster and worker config files for terraform
+
     common_options
         -m manifest_dir -- Location of manifest files that describe the deployment.
             Requires: install-config.yaml, bootstrap.yaml, master-0.yaml, [masters/workers...]
@@ -101,105 +104,97 @@ gen_terraform_cluster() {
 
     mapfile -d '' sorted < <(printf '%s\0' "${!CLUSTER_MAP[@]}" | sort -z)
 
-    printf "Generating...%s]\n" "$ofile"
+    printf "Generating...%s\n" "$ofile"
 
-    printf "// AUTOMATICALLY GENERATED -- Do not edit\n" | sudo tee "$ofile"
+    {
+        printf "// AUTOMATICALLY GENERATED -- Do not edit\n"
 
-    for key in "${sorted[@]}"; do
-        printf "%s = \"%s\"\n" "$key" "${FINAL_VALS[$key]}" | sudo tee -a "$ofile"
-        #printf '%s matches with %s\n' "$key" "${CLUSTER_MAP[$key]}"
-    done
-    # Generate the cluster terraform values for the variable number
-    # of masters
+        for key in "${sorted[@]}"; do
+            printf "%s = \"%s\"\n" "$key" "${FINAL_VALS[$key]}"
+        done
 
-    # TODO ... generate the following
+        printf "master_nodes = [\n"
+        printf "  {\n"
 
-    printf "master_nodes = [\n" | sudo tee -a "$ofile"
-    printf "  {\n" | sudo tee -a "$ofile"
+    } >"$ofile"
+    {
+        num_masters="${FINAL_VALS[master_count]}"
+        for ((i = 0; i < num_masters; i++)); do
+            m="master-$i"
+            if [[ -z ${FINAL_VALS[$m.metadata.name]} ]]; then
+                printf "\n Missing manifest data for %s, %d masters(replicas) were specified in install-config.yaml\n" "$m" "$num_masters"
+                exit 1
+            fi
+            printf "    name: \"%s\"\n" "${FINAL_VALS[$m.metadata.name]}"
+            printf "    public_ipv4: \"%s\"\n" "$(get_master_bm_ip $i)"
+            printf "    ipmi_host: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.address]}"
+            printf "    ipmi_user: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.user]}"
+            printf "    ipmi_pass: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.password]}"
+            printf "    mac_address: \"%s\"\n" "${FINAL_VALS[$m.spec.bootMACAddress]}"
 
-    num_masters="${FINAL_VALS[master_count]}"
-    for ((i = 0; i < num_masters; i++)); do
-        m="master-$i"
-        if [[ -z ${FINAL_VALS[$m.metadata.name]} ]]; then
-            printf "\n Missing manifest data for %s, %d masters(replicas) were specified in install-config.yaml\n" "$m" "$num_masters"
-            exit 1
-        fi
-        printf "    name: \"%s\"\n" "${FINAL_VALS[$m.metadata.name]}" | sudo tee -a "$ofile"
-        printf "    public_ipv4: \"%s\"\n" "$(get_master_bm_ip $i)" | sudo tee -a "$ofile"
-        printf "    ipmi_host: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.address]}" | sudo tee -a "$ofile"
-        printf "    ipmi_user: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.user]}" | sudo tee -a "$ofile"
-        printf "    ipmi_pass: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.password]}" | sudo tee -a "$ofile"
-        printf "    mac_address: \"%s\"\n" "${FINAL_VALS[$m.spec.bootMACAddress]}" | sudo tee -a "$ofile"
+            printf "  },\n"
+        done
 
-        printf "  },\n" | sudo tee -a "$ofile"
-    done
+        printf "]\n"
+    } >>"$ofile"
 
-    printf "]\n" | sudo tee -a "$ofile"
-
-    #master_nodes = [
-    #  {
-    #    name: "${MASTER0_NAME}",
-    #    public_ipv4: "${MASTER0_IP}",
-    #    ipmi_host: "${MASTER0_IPMI_HOST}",
-    #    ipmi_user: "${MASTER0_IPMI_USER}",
-    #    ipmi_pass: "${MASTER0_IPMI_PASS}",
-    #    mac_address: "${MASTER0_MAC}"
-    #  }
-    #]
 }
 
 gen_terraform_workers() {
     local out_dir="$1"
 
-    local cluster_dir="$out_dir/cluster"
-    mkdir -p "$cluster_dir"
-    local ofile="$out_dir/workers/terraform.tfvars"
+    local worker_dir="$out_dir/workers"
+    mkdir -p "$worker_dir"
 
-    mapfile -d '' sorted < <(printf '%s\0' "${!CLUSTER_MAP[@]}" | sort -z)
+    local ofile="$worker_dir/terraform.tfvars"
 
-    printf "Generating...%s]\n" "$ofile"
+    mapfile -d '' sorted < <(printf '%s\0' "${!WORKER_MAP[@]}" | sort -z)
 
-    printf "// AUTOMATICALLY GENERATED -- Do not edit\n" | sudo tee "$ofile"
+    printf "Generating...%s\n" "$ofile"
 
-    for key in "${sorted[@]}"; do
-        printf "%s = \"%s\"\n" "$key" "${FINAL_VALS[$key]}" | sudo tee -a "$ofile"
-        #printf '%s matches with %s\n' "$key" "${CLUSTER_MAP[$key]}"
-    done
-    # Generate the cluster terraform values for the variable number
-    # of masters
+    {
+        printf "// AUTOMATICALLY GENERATED -- Do not edit\n"
 
-    # TODO ... generate the following
+        for key in "${sorted[@]}"; do
+            printf "%s = \"%s\"\n" "$key" "${FINAL_VALS[$key]}"
+        done
+        printf "worker_nodes = [\n"
+        printf "  {\n"
+    } >"$ofile"
 
-    printf "master_nodes = [\n" | sudo tee -a "$ofile"
-    printf "  {\n" | sudo tee -a "$ofile"
+    {
+        num_workers="${FINAL_VALS[worker_count]}"
+        for ((i = 0; i < num_workers; i++)); do
+            m="worker-$i"
 
-    num_masters="${FINAL_VALS[master_count]}"
-    for ((i = 0; i < num_masters; i++)); do
-        m="master-$i"
-        printf "    name: \"%s\"\n" "${FINAL_VALS[$m.metadata.name]}" | sudo tee -a "$ofile"
-        printf "    public_ipv4: \"%s\"\n" "$(get_master_bm_ip $i)" | sudo tee -a "$ofile"
-        printf "    ipmi_host: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.address]}" | sudo tee -a "$ofile"
-        printf "    ipmi_user: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.user]}" | sudo tee -a "$ofile"
-        printf "    ipmi_pass: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.password]}" | sudo tee -a "$ofile"
-        printf "    mac_address: \"%s\"\n" "${FINAL_VALS[$m.spec.bootMACAddress]}" | sudo tee -a "$ofile"
+            printf "    name: \"%s\"\n" "${FINAL_VALS[$m.metadata.name]}"
+            printf "    public_ipv4: \"%s\"\n" "$(get_master_bm_ip $i)"
+            printf "    ipmi_host: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.address]}"
+            printf "    ipmi_user: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.user]}"
+            printf "    ipmi_pass: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.password]}"
+            printf "    mac_address: \"%s\"\n" "${FINAL_VALS[$m.spec.bootMACAddress]}"
+        done
 
-    done
+        printf "  }\n"
+        printf "]\n"
+    } >>"$ofile"
 
-    printf "  }\n" | sudo tee -a "$ofile"
-    printf "]\n" | sudo tee -a "$ofile"
-
-    #master_nodes = [
-    #  {
-    #    name: "${MASTER0_NAME}",
-    #    public_ipv4: "${MASTER0_IP}",
-    #    ipmi_host: "${MASTER0_IPMI_HOST}",
-    #    ipmi_user: "${MASTER0_IPMI_USER}",
-    #    ipmi_pass: "${MASTER0_IPMI_PASS}",
-    #    mac_address: "${MASTER0_MAC}"
-    #  }
-    #]
 }
 
+gen_cluster() {
+    local terraform_dir="$1"
+
+    map_cluster_vars
+    gen_terraform_cluster "$terraform_dir"
+}
+
+gen_workers() {
+    local terraform_dir="$1"
+
+    map_worker_vars
+    gen_terraform_workers "$terraform_dir"
+
+}
 if [ "$#" -lt 1 ]; then
     usage
 fi
@@ -276,10 +271,15 @@ command=$1
 shift # Remove 'prov|bm' from the argument list
 case "$command" in
 # Parse options to the install sub command
-
+all)
+    gen_cluster "$terraform_dir"
+    gen_workers "$terraform_dir"
+    ;;
 cluster)
-    map_cluster_vars
-    gen_terraform_cluster "$terraform_dir"
+    gen_cluster "$terraform_dir"
+    ;;
+workers)
+    gen_workers "$terraform_dir"
     ;;
 *)
     echo "Unknown command: $command"
