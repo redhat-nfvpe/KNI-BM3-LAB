@@ -148,7 +148,7 @@ gen_terraform_workers() {
 
     local ofile="$worker_dir/terraform.tfvars"
 
-    mapfile sorted < <(printf '%s\0' "${!WORKER_MAP[@]}" | sort)
+    mapfile -t sorted < <(printf '%s\0' "${!WORKER_MAP[@]}" | sort)
 
     printf "Generating...%s\n" "$ofile"
 
