@@ -333,7 +333,6 @@ printf "\nConfiguring matchbox...\n\n"
 mkdir -p ~/.matchbox
 mkdir -p matchbox
 sudo mkdir -p /etc/matchbox
-sudo mkdir -p /var/lib/matchbox/assets
 
 pushd matchbox
 
