@@ -31,8 +31,7 @@ parse_manifests() {
         # The keys are the fields in the yaml file
         # and the values are the values in the yaml file
         # shellcheck disable=SC2016
-        values=$(yq 'paths(scalars) as $p | [ ( [ $p[] | tostring ] | join(".") ) , ( getpath($p) | tojson ) ] | join(" ")' "$file")
-        if [ $? -ne 0 ]; then
+        if ! values=$(yq 'paths(scalars) as $p | [ ( [ $p[] | tostring ] | join(".") ) , ( getpath($p) | tojson ) ] | join(" ")' "$file"); then
             printf "Error during parsing..."
             exit 1
         fi
@@ -176,7 +175,7 @@ process_rule() {
     fi
 
     # loop through all the manifest variables searching
-    # for a match with the rule's index
+    # for matches with the rule's index
     # if one is found process it.
     for v in "${!MANIFEST_VALS[@]}"; do
         # The $rule is used to match against every key in MANIFEST_VALS[@]
@@ -233,6 +232,8 @@ process_rule() {
 
 map_cluster_vars() {
 
+    [[ "$VERBOSE" =~ true ]] && printf "Mapping cluster vars...\n"
+
     # shellcheck disable=SC1091
     source scripts/cluster_map.sh
 
@@ -268,7 +269,7 @@ map_cluster_vars() {
         process_rule "$rule" "$v"
     done
 
-    mapfile -d '' sorted < <(printf '%s\0' "${!FINAL_VALS[@]}" | sort -z)
+    mapfile sorted < <(printf '%s\0' "${!FINAL_VALS[@]}" | sort)
 
     ofile="$manifest_dir/final_cluster_vals.sh"
 
@@ -283,6 +284,7 @@ map_cluster_vars() {
 }
 
 map_worker_vars() {
+    [[ "$VERBOSE" =~ true ]] && printf "Mapping worker vars...\n"
 
     # shellcheck disable=SC1091
     source scripts/cluster_map.sh
@@ -319,7 +321,7 @@ map_worker_vars() {
         process_rule "$rule" "$v"
     done
 
-    mapfile -d '' sorted < <(printf '%s\0' "${!FINAL_VALS[@]}" | sort -z)
+    mapfile sorted < <(printf '%s\0' "${!FINAL_VALS[@]}" | sort)
 
     ofile="$manifest_dir/final_worker_vals.sh"
 
