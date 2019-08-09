@@ -102,7 +102,7 @@ gen_terraform_cluster() {
     mkdir -p "$cluster_dir"
     local ofile="$out_dir/cluster/terraform.tfvars"
 
-    mapfile -d '' sorted < <(printf '%s\0' "${!CLUSTER_MAP[@]}" | sort -z)
+    mapfile sorted < <(printf '%s\0' "${!CLUSTER_MAP[@]}" | sort)
 
     printf "Generating...%s\n" "$ofile"
 
@@ -148,7 +148,7 @@ gen_terraform_workers() {
 
     local ofile="$worker_dir/terraform.tfvars"
 
-    mapfile -d '' sorted < <(printf '%s\0' "${!WORKER_MAP[@]}" | sort -z)
+    mapfile sorted < <(printf '%s\0' "${!WORKER_MAP[@]}" | sort)
 
     printf "Generating...%s\n" "$ofile"
 

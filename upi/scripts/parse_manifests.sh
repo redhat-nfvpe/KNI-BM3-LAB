@@ -63,16 +63,18 @@ manifest_dir=$(realpath "$manifest_dir")
 
 parse_manifests "$manifest_dir"
 
-mapfile -d '' sorted < <(printf '%s\0' "${!MANIFEST_VALS[@]}" | sort -z)
+mapfile sorted < <(printf '%s\0' "${!MANIFEST_VALS[@]}" | sort)
 
 ofile="$manifest_dir/manifest_vals.sh"
 
-printf "declare -A MANIFEST_VALS=(\n" > "$ofile"
+{
+    printf "# AUTOMATICALLY GENERATED -- Do Not Edit --\n"
+    printf "declare -A MANIFEST_VALS=(\n"
 
-for v in "${sorted[@]}"; do
-    printf "  [%s]=\"%s\"\n" "$v" "${MANIFEST_VALS[$v]}" >> "$ofile"
-done
+    for v in "${sorted[@]}"; do
+        printf "  [%s]=\"%s\"\n" "$v" "${MANIFEST_VALS[$v]}"
+    done
 
-printf ")\n" >> "$ofile"
-printf "export MANIFEST_VALS\n" >> "$ofile"
-
+    printf ")\n"
+    printf "export MANIFEST_VALS\n"
+} >"$ofile"
