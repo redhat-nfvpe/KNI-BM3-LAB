@@ -45,13 +45,13 @@ printf "\nInstalling epel-release via yum...\n\n"
 
 sudo yum install -y epel-release
 
-###-------------------------------------------------------------------------###
-### Install Git, Podman, Unzip, Ipmitool, Dnsmasq, Bridge-Utils, Pip and Jq ###
-###-------------------------------------------------------------------------###
+###------------------------------###
+### Install dependencies via yum ###
+###------------------------------###
 
 printf "\nInstalling dependencies via yum...\n\n"
 
-sudo yum install -y git podman unzip ipmitool dnsmasq bridge-utils python-pip jq
+sudo yum install -y git podman unzip ipmitool dnsmasq bridge-utils python-pip jq nmap
 
 ###---------------------------------------------###
 ### Configure provisioning interface and bridge ###
@@ -330,6 +330,11 @@ fi
 
 printf "\nConfiguring matchbox...\n\n"
 
+mkdir -p ~/.matchbox
+mkdir -p matchbox
+sudo mkdir -p /etc/matchbox
+sudo mkdir -p /var/lib/matchbox/assets
+
 pushd matchbox
 
 if [[ ! -d "matchbox" ]]; then
@@ -457,14 +462,14 @@ fi
 ### Prepare terraform ###
 ###-------------------###
 
-printf "\nInstalling Terraform...\n\n"
+printf "\nInstalling Terraform and generating config...\n\n"
 
 if [[ ! -f "/usr/bin/terraform" ]]; then
     curl -O https://releases.hashicorp.com/terraform/0.12.2/terraform_0.12.2_linux_amd64.zip
     unzip terraform_0.12.2_linux_amd64.zip
     sudo mv terraform /usr/bin/.
 
-    if [[ ! -d "terraform-provider-matchbox" ]]; then
+    if [[ ! -d "/tmp/terraform-provider-matchbox" ]]; then
         git clone https://github.com/poseidon/terraform-provider-matchbox.git
         cd terraform-provider-matchbox
         go build
@@ -474,5 +479,10 @@ if [[ ! -f "/usr/bin/terraform" ]]; then
 fi
 
 popd
+
+if ! ./gen_terraform.sh all ; then
+    echo "Terraform config generation error.  Exiting!"
+    exit 1
+fi
 
 printf "\nDONE\n"
