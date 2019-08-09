@@ -173,11 +173,18 @@ process_rule() {
             return
         fi
     fi
+#    regex="s/$rule/$index/p"
+#    printf "\n -- regex = %s\n" "$regex"
 
+#    mapfile -t matches < <(printf "%s\n" "${!MANIFEST_VALS[@]}" | sed -nre "$regex")
+#    printf "matches \"%s\"\n" "${matches[@]}"
+#start="$(date +%s%N)"
     # loop through all the manifest variables searching
     # for matches with the rule's index
     # if one is found process it.
     for v in "${!MANIFEST_VALS[@]}"; do
+#    for v in "${matches[@]}"; do
+        printf "match == \"%s\"\n" "$v"
         # The $rule is used to match against every key in MANIFEST_VALS[@]
         # If there is a match, the pattern in $index is updated
         # For fixed entries like "bootstrap_memory_gb", nothing is changed
@@ -187,6 +194,8 @@ process_rule() {
             printf "Error processing %s\n" "$rule"
             exit 1
         fi
+#        r="$v"
+#        echo "r = $r"
         # Did we find a match?
         if [ -n "$r" ]; then
 
@@ -228,6 +237,8 @@ process_rule() {
 
         fi
     done
+#end="$(date +%s%N)"
+#printf "Execution time was %'d ns\n" "$(( "$end" - "$start" ))" 
 }
 
 map_cluster_vars() {
@@ -269,7 +280,7 @@ map_cluster_vars() {
         process_rule "$rule" "$v"
     done
 
-    mapfile sorted < <(printf '%s\0' "${!FINAL_VALS[@]}" | sort)
+    mapfile -t sorted < <(printf '%s\0' "${!FINAL_VALS[@]}" | sort)
 
     ofile="$manifest_dir/final_cluster_vals.sh"
 
@@ -321,7 +332,7 @@ map_worker_vars() {
         process_rule "$rule" "$v"
     done
 
-    mapfile sorted < <(printf '%s\0' "${!FINAL_VALS[@]}" | sort)
+    mapfile -t sorted < <(printf '%s\0' "${!FINAL_VALS[@]}" | sort)
 
     ofile="$manifest_dir/final_worker_vals.sh"
 
