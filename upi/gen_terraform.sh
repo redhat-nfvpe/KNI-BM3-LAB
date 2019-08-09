@@ -148,7 +148,7 @@ gen_terraform_workers() {
 
     local ofile="$worker_dir/terraform.tfvars"
 
-    mapfile -t sorted < <(printf '%s\0' "${!WORKER_MAP[@]}" | sort)
+    mapfile -t sorted < <(printf '%s\n' "${!WORKER_MAP[@]}" | sort)
 
     printf "Generating...%s\n" "$ofile"
 
@@ -203,7 +203,6 @@ VERBOSE="false"
 export VERBOSE
 
 while getopts ":hm:b:s:t:v" opt; do
-    echo "getopts"
     case ${opt} in
     m)
         manifest_dir=$OPTARG

@@ -128,7 +128,7 @@ process_rule() {
     local index="$2"
     # index = master-\\1.spec.bmc.user
 
-    [[ "$VERBOSE" =~ true ]] && printf "%s --> \"%s\"\n" "$index" "$rule"
+    [[ "$VERBOSE" =~ true ]] && printf "Processing rule \"%s\"\n" "$rule"
 
     # rule = %master-([012]+).spec.bmc.[credentialsName].stringdata.username@ (indirect)
     # rule = =master-([012]+).metadata.name=$BM_IP_NS (constant)
@@ -173,18 +173,21 @@ process_rule() {
             return
         fi
     fi
-#    regex="s/$rule/$index/p"
-#    printf "\n -- regex = %s\n" "$regex"
+    regex="/$rule/p"
+    unset matches
+    mapfile -t matches < <(printf "%s\n" "${!MANIFEST_VALS[@]}" | sed -nre "$regex")
 
-#    mapfile -t matches < <(printf "%s\n" "${!MANIFEST_VALS[@]}" | sed -nre "$regex")
-#    printf "matches \"%s\"\n" "${matches[@]}"
-#start="$(date +%s%N)"
+    if [[ "$VERBOSE" =~ true ]]; then
+        for m in "${matches[@]}"; do
+            printf "\t\"%s\" matches \"%s\"\n" "$regex" "$m"
+        done
+    fi
+    #start="$(date +%s%N)"
     # loop through all the manifest variables searching
     # for matches with the rule's index
     # if one is found process it.
-    for v in "${!MANIFEST_VALS[@]}"; do
-#    for v in "${matches[@]}"; do
-        printf "match == \"%s\"\n" "$v"
+    #    for v in "${!MANIFEST_VALS[@]}"; do
+    for v in "${matches[@]}"; do
         # The $rule is used to match against every key in MANIFEST_VALS[@]
         # If there is a match, the pattern in $index is updated
         # For fixed entries like "bootstrap_memory_gb", nothing is changed
@@ -194,12 +197,10 @@ process_rule() {
             printf "Error processing %s\n" "$rule"
             exit 1
         fi
-#        r="$v"
-#        echo "r = $r"
         # Did we find a match?
         if [ -n "$r" ]; then
 
-            [[ "$VERBOSE" =~ true ]] && printf "\tMatch Index(%s)  var(%s) rule(%s) \n" "$index" "$v" "$r"
+            [[ "$VERBOSE" =~ true ]] && printf "\tIndex -- Map \"%s\" -> \"%s\"\n" "$index" "$r"
 
             # Make sure there is a value for this key
             if [[ ! ${MANIFEST_VALS[$v]} ]]; then
@@ -237,8 +238,8 @@ process_rule() {
 
         fi
     done
-#end="$(date +%s%N)"
-#printf "Execution time was %'d ns\n" "$(( "$end" - "$start" ))" 
+    #end="$(date +%s%N)"
+    #printf "Execution time was %'d ns\n" "$(( "$end" - "$start" ))"
 }
 
 map_cluster_vars() {
@@ -396,6 +397,8 @@ join_by() {
 parse_prep_bm_host_src() {
     prep_src="$1"
 
+    [[ "$VERBOSE" =~ true ]] && printf "Processing prep_host vars in %s\n" "$prep_src"
+
     check_regular_file_exists "$prep_src"
 
     # shellcheck source=/dev/null
@@ -422,12 +425,13 @@ parse_prep_bm_host_src() {
     fi
 
     if [[ "$VERBOSE" =~ true ]]; then
-        echo "PROV_IP_CIDR = $PROV_IP_CIDR"
-        echo "BM_IP_CIDR = $BM_IP_CIDR"
-        echo "PROV_INTF = $PROV_INTF"
-        echo "PROV_BRIDGE = $PROV_BRIDGE"
-        echo "BM_INTF = $BM_INTF"
-        echo "BM_BRIDGE = $BM_BRIDGE"
+    
+        printf "\tPROV_IP_CIDR = \"%s\"\n" "$PROV_IP_CIDR"
+        printf "\tBM_IP_CIDR = \"%s\"\n" "$BM_IP_CIDR"
+        printf "\tPROV_INTF = \"%s\"\n" "$PROV_INTF"
+        printf "\tPROV_BRIDGE = \"%s\"\n" "$PROV_BRIDGE"
+        printf "\tBM_INTF = \"%s\"\n" "$BM_INTF"
+        printf "\tBM_BRIDGE = \"%s\"\n" "$BM_BRIDGE"
     fi
 
     # PROV_IP_CIDR has a default value defined in scripts/network_conf.sh

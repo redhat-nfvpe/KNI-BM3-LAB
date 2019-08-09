@@ -28,8 +28,8 @@ declare -A CLUSTER_MAP=(
     [nameserver]="==${BM_IP_NS}"
     [cluster_id]="%install-config.metadata.name"
     [cluster_domain]="%install-config.baseDomain"
-    [provisioning_interface]="==${PROV_BRIDGE}"
-    [baremetal_interface]="==${BM_BRIDGE}"
+    [provisioning_interface]="==$PROV_BRIDGE"
+    [baremetal_interface]="==$BM_BRIDGE"
     [master_count]="%install-config.controlPlane.replicas"
 )
 export CLUSTER_MAP
