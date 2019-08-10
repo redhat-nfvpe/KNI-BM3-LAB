@@ -99,8 +99,10 @@ gen_terraform_cluster() {
     local out_dir="$1"
 
     local cluster_dir="$out_dir/cluster"
+    
     mkdir -p "$cluster_dir"
-    local ofile="$out_dir/cluster/terraform.tfvars"
+
+    local ofile="$cluster_dir/terraform.tfvars"
 
     mapfile -t sorted < <(printf '%s\n' "${!CLUSTER_MAP[@]}" | sort)
 
@@ -144,6 +146,7 @@ gen_terraform_workers() {
     local out_dir="$1"
 
     local worker_dir="$out_dir/workers"
+
     mkdir -p "$worker_dir"
 
     local ofile="$worker_dir/terraform.tfvars"
@@ -202,19 +205,13 @@ fi
 VERBOSE="false"
 export VERBOSE
 
-while getopts ":hm:b:s:t:v" opt; do
+while getopts ":hm:t:v" opt; do
     case ${opt} in
     m)
         manifest_dir=$OPTARG
         ;;
     t)
         terraform_dir=$OPTARG
-        ;;
-    b)
-        base_dir=$OPTARG
-        ;;
-    s)
-        prep_host_setup_src=$OPTARG
         ;;
     v)
         VERBOSE="true"
@@ -245,21 +242,20 @@ if [[ -z "$PROJECT_DIR" ]]; then
 fi
 # shellcheck disable=SC1090
 source "$PROJECT_DIR/scripts/cluster_map.sh"
+# shellcheck disable=SC1090
+source "$PROJECT_DIR/scripts/paths.sh"
 
-manifest_dir=${manifest_dir:-$PROJECT_DIR/cluster}
+manifest_dir=${manifest_dir:-$MANIFEST_DIR}
 check_directory_exists "$manifest_dir"
 manifest_dir=$(realpath "$manifest_dir")
 
-terraform_dir=${terraform_dir:-$PROJECT_DIR/terraform}
+terraform_dir=${terraform_dir:-$TERRAFORM_DIR}
 terraform_dir=$(realpath "$terraform_dir")
 
-base_dir=${base_dir:-$PROJECT_DIR/dnsmasq}
-check_directory_exists "$base_dir"
-base_dir=$(realpath "$base_dir")
+mkdir -p "$terraform_dir"
 
 # get prep_host_setup.src file info
-prep_host_setup_src=${prep_host_setup_src:-$manifest_dir/prep_bm_host.src}
-parse_prep_bm_host_src "$prep_host_setup_src"
+parse_prep_bm_host_src "$manifest_dir/prep_bm_host.src"
 
 # shellcheck disable=SC1091
 source "scripts/network_conf.sh"

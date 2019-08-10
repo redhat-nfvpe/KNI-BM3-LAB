@@ -143,6 +143,8 @@ fi
 
 # shellcheck disable=SC1091
 source "common.sh"
+# shellcheck disable=SC1090
+source "$PROJECT_DIR/scripts/paths.sh"
 
 # shellcheck disable=SC1090
 source "$PROJECT_DIR/scripts/cluster_map.sh"
@@ -150,7 +152,10 @@ source "$PROJECT_DIR/scripts/cluster_map.sh"
 # shellcheck disable=SC1090
 source "$PROJECT_DIR/scripts/utils.sh"
 
-prep_host_setup_src="$PROJECT_DIR/cluster/prep_bm_host.src"
+manifest_dir=${manifest_dir:-$MANIFEST_DIR}
+manifest_dir=$(realpath "$manifest_dir")
+
+prep_host_setup_src="$manifest_dir/prep_bm_host.src"
 prep_host_setup_src=$(realpath "$prep_host_setup_src")
 
 # get prep_host_setup.src file info
@@ -159,11 +164,8 @@ parse_prep_bm_host_src "$prep_host_setup_src"
 # shellcheck disable=SC1090
 source "$PROJECT_DIR/scripts/network_conf.sh"
 
-out_dir=${out_dir:-$PROJECT_DIR/coredns}
+out_dir=${out_dir:-$COREDNS_DIR}
 out_dir=$(realpath "$out_dir")
-
-manifest_dir=${manifest_dir:-$PROJECT_DIR/cluster}
-manifest_dir=$(realpath "$manifest_dir")
 
 parse_manifests "$manifest_dir"
 

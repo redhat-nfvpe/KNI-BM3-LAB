@@ -294,7 +294,7 @@ map_cluster_vars() {
         process_rule "$rule" "$v"
     done
 
-    mapfile -t sorted < <(printf '%s\0' "${!FINAL_VALS[@]}" | sort)
+    mapfile -t sorted < <(printf '%s\n' "${!FINAL_VALS[@]}" | sort)
 
     ofile="$manifest_dir/final_cluster_vals.sh"
 
@@ -346,7 +346,7 @@ map_worker_vars() {
         process_rule "$rule" "$v"
     done
 
-    mapfile -t sorted < <(printf '%s\0' "${!FINAL_VALS[@]}" | sort)
+    mapfile -t sorted < <(printf '%s\n' "${!FINAL_VALS[@]}" | sort)
 
     ofile="$manifest_dir/final_worker_vals.sh"
 

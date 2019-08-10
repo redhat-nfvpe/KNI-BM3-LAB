@@ -1,14 +1,18 @@
 #!/bin/bash
 
+
+# shellcheck disable=SC1090
+source "$PROJECT_DIR/scripts/paths.sh"
+
 DEFAULT_INITRD="assets/rhcos-4.1.0-x86_64-installer-initramfs.img"
 DEFAULT_KERNEL="assets/rhcos-4.1.0-x86_64-installer-kernel"
 
 declare -A CLUSTER_MAP=(
-    [bootstrap_ign_file]="==./ocp/bootstrap.ign"
-    [master_ign_file]="==./ocp/master.ign"
-    [matchbox_client_cert]="==./matchbox/scripts/tls/client.crt"
-    [matchbox_client_key]="==./matchbox/scripts/tls/client.key"
-    [matchbox_trusted_ca_cert]="==./matchbox/scripts/tls/ca.crt"
+    [bootstrap_ign_file]="==$OPENSHIFT_DIR/bootstrap.ign"
+    [master_ign_file]="==$OPENSHIFT_DIR/master.ign"
+    [matchbox_client_cert]="==$MATCHBOX_DIR/scripts/tls/client.crt"
+    [matchbox_client_key]="==$MATCHBOX_DIR/scripts/tls/client.key"
+    [matchbox_trusted_ca_cert]="==$MATCHBOX_DIR/scripts/tls/ca.crt"
     [matchbox_http_endpoint]="==http://${PROV_IP_ADDR}:8080"
     [matchbox_rpc_endpoint]="==${PROV_IP_ADDR}:8081"
     [pxe_initrd_url]="==$DEFAULT_INITRD"
@@ -50,9 +54,9 @@ export CLUSTER_MASTER_MAP
 
 
 declare -A WORKER_MAP=(
-    [matchbox_client_cert]="==./matchbox/scripts/tls/client.crt"
-    [matchbox_client_key]="==./matchbox/scripts/tls/client.key"
-    [matchbox_trusted_ca_cert]="==./matchbox/scripts/tls/ca.crt"
+    [matchbox_client_cert]="==$MATCHBOX_DIR/scripts/tls/client.crt"
+    [matchbox_client_key]="==$MATCHBOX_DIR/scripts/tls/client.key"
+    [matchbox_trusted_ca_cert]="==$MATCHBOX_DIR/scripts/tls/ca.crt"
     [matchbox_http_endpoint]="==http://${PROV_IP_ADDR}:8080"
     [matchbox_rpc_endpoint]="==${PROV_IP_ADDR}:8081"
     [pxe_initrd_url]="==assets/rhel_initrd.img"
