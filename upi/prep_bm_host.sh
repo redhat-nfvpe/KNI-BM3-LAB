@@ -336,9 +336,9 @@ sudo mkdir -p /etc/matchbox
 
 pushd matchbox
 
-if [[ ! -d "matchbox" ]]; then
-    git clone https://github.com/poseidon/matchbox.git
-    pushd matchbox/scripts/tls
+if [[ ! -f "Makefile" ]]; then
+    git clone https://github.com/poseidon/matchbox.git .
+    pushd scripts/tls
     export SAN=IP.1:$(nthhost $PROV_IP_CIDR 10)
     ./cert-gen
     sudo cp ca.crt server.crt server.key /etc/matchbox
