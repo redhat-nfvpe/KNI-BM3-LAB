@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# shellcheck disable=SC1091
+source "common.sh"
+
+DNSMASQ_CONTAINER_NAME="dnsmasq-bm"
+DNSMASQ_CONTAINER_IMAGE="quay.io/poseidon/dnsmasq"
+
 # Script to generate dnsmasq.conf for the baremetal network
 # This script is intended to be called from a master script in the
 # base project or to be run from the base project directory
@@ -45,7 +51,7 @@ gen_hostfile_bm() {
 
     echo "${FINAL_VALS[bootstrap_sdn_mac_address]},$BM_IP_BOOTSTRAP,$cid-bootstrap-0.$cdomain" >"$hostsfile"
 
-    echo "${FINAL_VALS[master-0.spec.public_mac]},$(get_master_bm_ip 0),$cid-master-0.$cdomain" >>"$hostsfile"
+    echo "${FINAL_VALS[master - 0.spec.public_mac]},$(get_master_bm_ip 0),$cid-master-0.$cdomain" >>"$hostsfile"
 
     if [ -n "${FINAL_VALS[master - 1.spec.public_mac]}" ] && [ -z "${FINAL_VALS[master - 2.spec.public_mac]}" ]; then
         echo "Both master-1 and master-2 must be set."
@@ -141,6 +147,13 @@ log-facility=/var/run/dnsmasq/dnsmasq.log
 EOF
 }
 
+gen_config() {
+    local out_dir="$1"
+
+    gen_config_bm "$BM_BRIDGE" "$out_dir"
+    gen_hostfile_bm "$out_dir"
+}
+
 VERBOSE="false"
 export VERBOSE
 
@@ -174,6 +187,13 @@ if [[ -z "$PROJECT_DIR" ]]; then
     exit 1
 fi
 
+if [ "$#" -gt 0 ]; then
+    COMMAND=$1
+    shift
+else
+    COMMAND="bm"
+fi
+
 # shellcheck disable=SC1090
 source "$PROJECT_DIR/scripts/utils.sh"
 
@@ -196,5 +216,46 @@ parse_manifests "$manifest_dir"
 
 map_cluster_vars
 
-gen_config_bm "$BM_BRIDGE" "$out_dir"
-gen_hostfile_bm "$out_dir"
+case "$COMMAND" in
+bm)
+    gen_config "$out_dir"
+    ;;
+start)
+    gen_config "$out_dir"
+    if podman ps --all | grep "$DNSMASQ_CONTAINER_NAME" >/dev/null; then
+        printf "%s already exists, removing and starting...\n" "$DNSMASQ_CONTAINER_NAME"
+        podman stop "$DNSMASQ_CONTAINER_NAME" >/dev/null 2>&1
+        if ! podman rm "$DNSMASQ_CONTAINER_NAME" >/dev/null; then
+            printf "Could not remove \"%s\"" "$DNSMASQ_CONTAINER_NAME"
+            exit 1
+        fi
+    fi
+    if ! cid=$(podman run -d --name "$DNSMASQ_CONTAINER_NAME" --net=host \
+        -v "$PROJECT_DIR/dnsmasq/bm/var/run:/var/run/dnsmasq:Z" \
+        -v "$PROJECT_DIR/dnsmasq/bm/etc/dnsmasq.d:/etc/dnsmasq.d:Z" \
+        --expose=53 --expose=53/udp --expose=67 --expose=67/udp --expose=69 \
+        --expose=69/udp --cap-add=NET_ADMIN "$DNSMASQ_CONTAINER_IMAGE" \
+        --conf-file=/etc/dnsmasq.d/dnsmasq.conf -u root -d -q); then
+        printf "Could not start %s container!\n" "$DNSMASQ_CONTAINER_NAME"
+        exit 1
+    fi
+    run_status=$(podman inspect $DNSMASQ_CONTAINER_NAME | jq .[0].State.Running)
+    if [[ "$run_status" =~ false ]]; then
+        printf "Failed to start container...\n"
+        podman logs "$DNSMASQ_CONTAINER_NAME"
+    else
+        printf "Started %s as id %s\n" "$DNSMASQ_CONTAINER_NAME" "$cid"
+    fi
+    ;;
+stop)
+    cid=$(podman stop "$DNSMASQ_CONTAINER_NAME") && printf "Stopped %s\n" "$cid"
+    ;;
+remove)
+    podman stop "$DNSMASQ_CONTAINER_NAME" 2>/dev/null && podman rm "$DNSMASQ_CONTAINER_NAME" >/dev/null
+    ;;
+
+*)
+    echo "Unknown command: ${COMMAND}"
+    usage
+    ;;
+esac

@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# shellcheck disable=SC1091
+source "common.sh"
+
 COREDNS_CONTAINTER_NAME="coredns"
 
 set -o pipefail
@@ -36,7 +39,7 @@ gen_config_corefile() {
 
     mkdir -p "$out_dir"
 
-    cat <<EOF > "$cfg_file"
+    cat <<EOF >"$cfg_file"
 .:53 {
     log
     errors
@@ -61,7 +64,7 @@ gen_config_db() {
 
     mkdir -p "$out_dir"
 
-cat <<EOF > "$cfg_file"
+    cat <<EOF >"$cfg_file"
 \$ORIGIN $cluster_domain.
 \$TTL 10800      ; 3 hours
 @       3600 IN SOA sns.dns.icann.org. noc.dns.icann.org. (
@@ -91,6 +94,16 @@ EOF
     echo "$cfg_file"
 }
 
+gen_config() {
+    local out_dir="$1"
+
+    ofile=$(gen_config_corefile "$out_dir")
+    printf "Generated %s...\n" "$ofile"
+
+    ofile=$(gen_config_db "$out_dir")
+    printf "Generated %s...\n" "$ofile"
+}
+
 VERBOSE="false"
 export VERBOSE
 
@@ -115,14 +128,13 @@ while getopts ":ho:m:v" opt; do
         ;;
     esac
 done
-shift $((OPTIND - 1))
 
-if [ "$#" -ne 1 ]; then
-    usage
+if [ "$#" -gt 0 ]; then
+    COMMAND=$1
+    shift
+else
+    COMMAND="all"
 fi
-
-COMMAND=$1
-shift
 
 if [[ -z "$PROJECT_DIR" ]]; then
     usage
@@ -158,6 +170,9 @@ parse_manifests "$manifest_dir"
 map_cluster_vars
 
 case "$COMMAND" in
+all)
+    gen_config "$out_dir"
+    ;;
 corefile)
     ofile=$(gen_config_corefile "$out_dir")
     printf "Generated %s...\n" "$ofile"
@@ -169,21 +184,26 @@ db)
 start)
     if podman ps --all | grep "$COREDNS_CONTAINTER_NAME" >/dev/null; then
         printf "Container already exists, removing and starting...\n"
-        if ! podman stop "$COREDNS_CONTAINTER_NAME" >/dev/null; then
-            printf "Could not stop \"%s\"" "$COREDNS_CONTAINTER_NAME"
-            exit 1
-        fi
+        podman stop "$COREDNS_CONTAINTER_NAME" >/dev/null 2>&1
         if ! podman rm "$COREDNS_CONTAINTER_NAME" >/dev/null; then
             printf "Could not remove \"%s\"" "$COREDNS_CONTAINTER_NAME"
             exit 1
         fi
     fi
-    if ! cid=$(podman run -d --expose=53/udp --name "$COREDNS_CONTAINTER_NAME" -p "$(nthhost "$BM_IP_CIDR" 1):53:53" -p "$(nthhost "$BM_IP_CIDR" 1):53:53/udp" \
-            -v "$PROJECT_DIR/coredns:/etc/coredns:z" --name coredns coredns/coredns:latest -conf /etc/coredns/Corefile); then
-        printf "Could not start coredns container!"
+    if ! cid=$(podman run -d --expose=53/udp --name "$COREDNS_CONTAINTER_NAME" \
+        -p "$(nthhost "$BM_IP_CIDR" 1):53:53" -p "$(nthhost "$BM_IP_CIDR" 1):53:53/udp" \
+        -v "$PROJECT_DIR/coredns:/etc/coredns:z" --name coredns coredns/coredns:latest \
+        -conf /etc/coredns/Corefile); then
+        printf "Could not start coredns container!\n"
         exit 1
     fi
-    printf "Started container id %s\n" "$cid"
+    run_status=$(podman inspect $COREDNS_CONTAINTER_NAME | jq .[0].State.Running)
+    if [[ "$run_status" =~ false ]]; then
+        printf "Failed to start container...\n"
+        podman logs "$COREDNS_CONTAINTER_NAME"
+    else
+        printf "Started %s as id %s\n" "$DNSMASQ_CONTAINER_NAME" "$cid"
+    fi
     ;;
 stop)
     cid=$(podman stop "$COREDNS_CONTAINTER_NAME") && printf "Stopped %s\n" "$cid"
