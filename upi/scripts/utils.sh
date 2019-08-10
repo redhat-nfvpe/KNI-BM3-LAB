@@ -164,8 +164,16 @@ process_rule() {
         fi
         value="${BASH_REMATCH[1]}"
         rule=${rule%=*}
-
+        # A regular constant rule, i.e. ==FOO will be blank at this point
+        # So just go ahead and set it.
         if [[ -z "$rule" ]]; then
+            if [[ "$value" =~ ^\.\/ ]]; then
+                # ASSume that this is meant to a path relative to the PROJECT_DIR
+                # and expand to an absoute path
+                # probably a bug
+                value="$PROJECT_DIR${value#.}"
+            fi
+
             FINAL_VALS[$index]="$value"
 
             [[ "$VERBOSE" =~ true ]] && printf "\tFINAL_VALS[%s] = \"%s\"\n" "$index" "$value"
@@ -229,6 +237,11 @@ process_rule() {
                     mapped_val="${MANIFEST_VALS[$v]}"
                 fi
             elif [ "$constant" = true ]; then
+                if [[ "$value" =~ ^\.\/ ]]; then
+                    # might be a path relative to the PROJECT_DIR
+                    # if so, expand to an absoute path
+                    value="$PROJECT_DIR${value#.}"
+                fi
                 mapped_val="$value"
             fi
 
@@ -425,7 +438,7 @@ parse_prep_bm_host_src() {
     fi
 
     if [[ "$VERBOSE" =~ true ]]; then
-    
+
         printf "\tPROV_IP_CIDR = \"%s\"\n" "$PROV_IP_CIDR"
         printf "\tBM_IP_CIDR = \"%s\"\n" "$BM_IP_CIDR"
         printf "\tPROV_INTF = \"%s\"\n" "$PROV_INTF"
