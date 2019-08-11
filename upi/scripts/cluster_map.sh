@@ -39,6 +39,7 @@ declare -A CLUSTER_MAP=(
 export CLUSTER_MAP
 
 declare -A CLUSTER_MASTER_MAP=(
+    [master-\\1.install_dev]="=master-([012]+).metadata.name=vda"    
     [master-\\1.spec.public_ipv4]="%master-([012]+).metadata.annotations.kni.io\/sdnIPv4"
     [master-\\1.spec.public_mac]="%master-([012]+).metadata.annotations.kni.io\/sdnNetworkMac"
     # The following is an example of a rule that allows
