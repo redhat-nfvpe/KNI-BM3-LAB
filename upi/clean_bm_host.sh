@@ -100,7 +100,7 @@ if [[ ! -z "$MATCHBOX_CONTAINER" ]]; then
     podman rm -f matchbox
 fi
 
-if [[ -d "/var/lib/matchbox/assets" ]]; then
+if [[ -d "/var/lib/matchbox/assets" && "$1" == "all" ]]; then
     sudo rm -rf /var/lib/matchbox/assets
 fi
 
@@ -160,7 +160,7 @@ fi
 
 printf "\nRemoving OpenShift binaries...\n\n"
 
-if [[ -f "/usr/local/bin/openshift-install" ]]; then
+if [[ -f "/usr/local/bin/openshift-install" && "$1" == "all" ]]; then
     sudo rm -f /usr/local/bin/openshift-install
 fi
 
@@ -174,7 +174,7 @@ fi
 
 printf "\nRemoving Terraform...\n\n"
 
-if [[ -f "/usr/bin/terraform" ]]; then
+if [[ -f "/usr/bin/terraform" && "$1" == "all" ]]; then
     sudo rm -f /usr/bin/terraform
 fi
 

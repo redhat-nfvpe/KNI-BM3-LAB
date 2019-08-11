@@ -511,8 +511,8 @@ if [[ ! -f "README.md" ]]; then
     git clone https://github.com/redhat-nfvpe/upi-rt.git .
 fi
 
-cp $PROJECT_DIR/terraform/cluster/terraform.tfvars terraform/cluster/.
-cp $PROJECT_DIR/terraform/workers/terraform.tfvars terraform/workers/.
+cp -f $PROJECT_DIR/terraform/cluster/terraform.tfvars terraform/cluster/.
+cp -f $PROJECT_DIR/terraform/workers/terraform.tfvars terraform/workers/.
 
 popd
 
