@@ -71,6 +71,11 @@
 #     credentialsName: ha-lab-ipmi-secret
 #   bootMACAddress: 0c:c4:7a:8e:ee:0c
 
+CLUSTER_DIR=cluster
+CLUSTER_TFVARS="$CLUSTER_DIR/terraform.tfvars"
+WORKER_DIR=workers
+WORKER_TFVARS="$WORKER_DIR/terraform.tfvars"
+
 usage() {
     cat <<EOM
 
@@ -99,7 +104,7 @@ gen_terraform_cluster() {
     local out_dir="$1"
 
     local cluster_dir="$out_dir/cluster"
-    
+
     mkdir -p "$cluster_dir"
 
     local ofile="$cluster_dir/terraform.tfvars"
@@ -112,7 +117,9 @@ gen_terraform_cluster() {
         printf "// AUTOMATICALLY GENERATED -- Do not edit\n"
 
         for key in "${sorted[@]}"; do
-            printf "%s = \"%s\"\n" "$key" "${FINAL_VALS[$key]}"
+            if [[ ! ${NO_TERRAFORM_MAP[$key]} ]]; then
+                printf "%s = \"%s\"\n" "$key" "${FINAL_VALS[$key]}"
+            fi
         done
 
         printf "master_nodes = [\n"
@@ -276,6 +283,20 @@ cluster)
     ;;
 workers)
     gen_workers "$terraform_dir"
+    ;;
+apply-cluster)
+    cp "$out_dir/$CLUSTER_TFVARS" upi-rt/terraform/cluster
+    (
+        cd upi-rt/terraform/cluster || exit
+        terraform apply --auto-approve
+    )
+    ;;
+apply-workers)
+    cp "$out_dir/$WORKER_TFVARS" upi-rt/terraform/workers
+    (
+        cd upi-rt/terraform/workers || exit
+        terraform apply --auto-approve
+    )
     ;;
 *)
     echo "Unknown command: $command"

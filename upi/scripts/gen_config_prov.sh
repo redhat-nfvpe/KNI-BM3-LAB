@@ -149,6 +149,8 @@ while getopts ":ho:s:m:v" opt; do
     esac
 done
 
+shift $((OPTIND - 1))
+
 if [[ -z "$PROJECT_DIR" ]]; then
     usage
     exit 1

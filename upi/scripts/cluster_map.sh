@@ -7,6 +7,11 @@ source "$PROJECT_DIR/scripts/paths.sh"
 DEFAULT_INITRD="assets/rhcos-4.1.0-x86_64-installer-initramfs.img"
 DEFAULT_KERNEL="assets/rhcos-4.1.0-x86_64-installer-kernel"
 
+declare -A NO_TERRAFORM_MAP=(
+    [bootstrap_sdn_mac_address]="true"
+)
+export NO_TERRAFORM_MAP
+
 declare -A CLUSTER_MAP=(
     [bootstrap_ign_file]="==$OPENSHIFT_DIR/bootstrap.ign"
     [master_ign_file]="==$OPENSHIFT_DIR/master.ign"
@@ -23,7 +28,7 @@ declare -A CLUSTER_MAP=(
 #    [bootstrap_ipmi_user]="%bootstrap.spec.bmc.[credentialsName].stringdata.username@"
 #    [bootstrap_ipmi_pass]="%bootstrap.spec.bmc.[credentialsName].stringdata.password@"
     [bootstrap_mac_address]="%bootstrap.spec.bootMACAddress"
-#    [bootstrap_sdn_mac_address]="%bootstrap.metadata.annotations.kni.io\/sdnNetworkMac"
+    [bootstrap_sdn_mac_address]="%bootstrap.metadata.annotations.kni.io\/sdnNetworkMac"
     [bootstrap_memory_gb]="==12"
     [bootstrap_vcpu]="==6"
     [bootstrap_provisioning_bridge]="==$PROV_BRIDGE"

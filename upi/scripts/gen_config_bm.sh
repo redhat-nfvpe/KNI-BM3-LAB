@@ -50,22 +50,22 @@ gen_hostfile_bm() {
     cdomain="${FINAL_VALS[cluster_domain]}"
 
     echo "${FINAL_VALS[bootstrap_sdn_mac_address]},$BM_IP_BOOTSTRAP,$cid-bootstrap-0.$cdomain" >"$hostsfile"
+    #  master - 0.spec.public_mac
+    echo "${FINAL_VALS[master\-0.spec.public_mac]},$(get_master_bm_ip 0),$cid-master-0.$cdomain" >>"$hostsfile"
 
-    echo "${FINAL_VALS[master - 0.spec.public_mac]},$(get_master_bm_ip 0),$cid-master-0.$cdomain" >>"$hostsfile"
-
-    if [ -n "${FINAL_VALS[master - 1.spec.public_mac]}" ] && [ -z "${FINAL_VALS[master - 2.spec.public_mac]}" ]; then
+    if [ -n "${FINAL_VALS[master\-1.spec.public_mac]}" ] && [ -z "${FINAL_VALS[master\-2.spec.public_mac]}" ]; then
         echo "Both master-1 and master-2 must be set."
         exit 1
     fi
 
-    if [ -z "${FINAL_VALS[master - 1.spec.public_mac]}" ] && [ -n "${FINAL_VALS[master - 2.spec.public_mac]}" ]; then
+    if [ -z "${FINAL_VALS[master\-1.spec.public_mac]}" ] && [ -n "${FINAL_VALS[master\-2.spec.public_mac]}" ]; then
         echo "Both master-1 and master-2 must be set."
         exit 1
     fi
 
-    if [ -n "${FINAL_VALS[master - 1.spec.public_mac]}" ] && [ -n "${FINAL_VALS[master - 2.spec.public_mac]}" ]; then
-        echo "${FINAL_VALS[master - 1.spec.bootMACAddress]},$BM_IP_MASTER_1,$cid-master-1.$cdomain" >>"$hostsfile"
-        echo "${FINAL_VALS[master - 2.spec.bootMACAddress]},$BM_IP_MASTER_2,$cid-master-2.$cdomain" >>"$hostsfile"
+    if [ -n "${FINAL_VALS[master\-1.spec.public_mac]}" ] && [ -n "${FINAL_VALS[master\-2.spec.public_mac]}" ]; then
+        echo "${FINAL_VALS[master\-1.spec.bootMACAddress]},$BM_IP_MASTER_1,$cid-master-1.$cdomain" >>"$hostsfile"
+        echo "${FINAL_VALS[master\-2.spec.bootMACAddress]},$BM_IP_MASTER_2,$cid-master-2.$cdomain" >>"$hostsfile"
     fi
 
     # generate hostfile entries for workers
@@ -181,11 +181,7 @@ while getopts ":ho:s:m:v" opt; do
         ;;
     esac
 done
-
-if [[ -z "$PROJECT_DIR" ]]; then
-    usage
-    exit 1
-fi
+shift $((OPTIND - 1))
 
 if [ "$#" -gt 0 ]; then
     COMMAND=$1
