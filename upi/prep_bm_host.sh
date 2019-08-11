@@ -27,6 +27,8 @@ done
 # shellcheck disable=SC1091
 source "common.sh"
 # shellcheck disable=SC1091
+source "scripts/paths.sh"
+# shellcheck disable=SC1091
 source "scripts/network_conf.sh"
 # shellcheck disable=SC1091
 source "scripts/utils.sh"
@@ -481,6 +483,17 @@ popd
 
 if ! ./gen_terraform.sh all ; then
     echo "Terraform config generation error.  Exiting!"
+    exit 1
+fi
+
+###-------------------###
+### Prepare ignitions ###
+###-------------------###
+
+printf "\nGenerating ignition config...\n\n"
+
+if ! ./scripts/gen_ignition.sh ; then
+    echo "Ignition config generation error.  Exiting!"
     exit 1
 fi
 
