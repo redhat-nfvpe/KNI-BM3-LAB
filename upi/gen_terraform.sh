@@ -127,12 +127,13 @@ gen_terraform_cluster() {
                 printf "\n Missing manifest data for %s, %d masters(replicas) were specified in install-config.yaml\n" "$m" "$num_masters"
                 exit 1
             fi
-            printf "    name: \"%s\"\n" "${FINAL_VALS[$m.metadata.name]}"
-            printf "    public_ipv4: \"%s\"\n" "$(get_master_bm_ip $i)"
-            printf "    ipmi_host: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.address]}"
-            printf "    ipmi_user: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.user]}"
-            printf "    ipmi_pass: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.password]}"
-            printf "    mac_address: \"%s\"\n" "${FINAL_VALS[$m.spec.bootMACAddress]}"
+            printf "    name: \"%s\",\n" "${FINAL_VALS[$m.metadata.name]}"
+            printf "    public_ipv4: \"%s\",\n" "$(get_master_bm_ip $i)"
+            printf "    ipmi_host: \"%s\",\n" "${FINAL_VALS[$m.spec.bmc.address]}"
+            printf "    ipmi_user: \"%s\",\n" "${FINAL_VALS[$m.spec.bmc.user]}"
+            printf "    ipmi_pass: \"%s\",\n" "${FINAL_VALS[$m.spec.bmc.password]}"
+            printf "    mac_address: \"%s\",\n" "${FINAL_VALS[$m.spec.bootMACAddress]}"
+            printf "    install_dev: \"%s\",\n" "${FINAL_VALS[$m.install_dev]}"
 
             printf "  },\n"
         done
@@ -170,12 +171,12 @@ gen_terraform_workers() {
         for ((i = 0; i < num_workers; i++)); do
             m="worker-$i"
 
-            printf "    name: \"%s\"\n" "${FINAL_VALS[$m.metadata.name]}"
-            printf "    public_ipv4: \"%s\"\n" "$(get_master_bm_ip $i)"
-            printf "    ipmi_host: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.address]}"
-            printf "    ipmi_user: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.user]}"
-            printf "    ipmi_pass: \"%s\"\n" "${FINAL_VALS[$m.spec.bmc.password]}"
-            printf "    mac_address: \"%s\"\n" "${FINAL_VALS[$m.spec.bootMACAddress]}"
+            printf "    name: \"%s\",\n" "${FINAL_VALS[$m.metadata.name]}"
+            printf "    public_ipv4: \"%s\",\n" "$(get_master_bm_ip $i)"
+            printf "    ipmi_host: \"%s\",\n" "${FINAL_VALS[$m.spec.bmc.address]}"
+            printf "    ipmi_user: \"%s\",\n" "${FINAL_VALS[$m.spec.bmc.user]}"
+            printf "    ipmi_pass: \"%s\",\n" "${FINAL_VALS[$m.spec.bmc.password]}"
+            printf "    mac_address: \"%s\",\n" "${FINAL_VALS[$m.spec.bootMACAddress]}"
         done
 
         printf "  }\n"

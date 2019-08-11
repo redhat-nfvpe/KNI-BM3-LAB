@@ -12,21 +12,31 @@ haproxy_conf := $(haproxy_dir)/haproxy.conf
 dnsmasq_conf := $(dnsmasq_bm_conf) $(dnsmasq_prov_conf)
 coredns_conf := $(coredns_dir)/Corefile
 terraform := $(terraform_dir)/cluster/terraform.tfvars $(terraform_dir)/workers/terraform.tfvars 
+ignitions := $(openshift_dir)/worker.ign $(openshift_dir)/master.ign
 
-all: $(dnsmasq_conf) $(coredns_conf) $(terraform) $(haproxy_conf)
+all: dnsmasq haproxy coredns terraform
 
 dnsmasq_conf: $(dnsmasq_prov_conf) $(dnsmasq_bm_conf) $(coredns_conf)
- 
-$(dnsmasq_prov_conf): $(manifests)
+
+.PHONY: dnsmasq
+dnsmasq:  $(dnsmasq_prov_conf) $(dnsmasq_bm_conf)
+
+$(dnsmasq_prov_conf): $(manifests) ./scripts/gen_config_prov.sh
 	./scripts/gen_config_prov.sh
 
-$(dnsmasq_bm_conf): $(manifests)
+$(dnsmasq_bm_conf): $(manifests) ./scripts/gen_config_bm.sh
 	./scripts/gen_config_bm.sh bm
 
-$(haproxy_conf): $(manifests)
+.PHONY: haproxy
+haproxy: $(haproxy_conf)
+
+$(haproxy_conf): $(manifests) ./scripts/gen_haproxy.sh
 	./scripts/gen_haproxy.sh build
 
-$(coredns_conf): $(manifests)
+.PHONY: coredns
+coredns: $(coredns_conf)
+
+$(coredns_conf): $(manifests) ./scripts/gen_coredns.sh
 	./scripts/gen_coredns.sh
 
 terraform: $(terraform)
@@ -34,8 +44,13 @@ terraform: $(terraform)
 $(terraform): $(manifests) ./scripts/cluster_map.sh ./scripts/network_conf.sh
 	./gen_terraform.sh all
 
+
 cluster/manifest_vals.sh: $(manifests)
 	./scripts/parse_manifests.sh
+
+ignition: $(ignitions) 
+$(ignitions): $(manifests) ./scripts/gen_ignition.sh
+	./scripts/gen_ignition.sh
 
 clean:
 	rm -f ./cluster/manifest_vals.sh
