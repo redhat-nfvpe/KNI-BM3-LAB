@@ -99,7 +99,7 @@ log-facility=/var/run/dnsmasq/dnsmasq.log
 
 # iPXE - chainload to matchbox ipxe boot script
 dhcp-userclass=set:ipxe,iPXE
-dhcp-boot=tag:ipxe,http://$PROV_IP_IPXE_URL/boot.ipxe
+dhcp-boot=tag:ipxe,$PROV_IP_HTTP_URL/boot.ipxe
 
 # Enable dnsmasq's built-in TFTP server
 enable-tftp
