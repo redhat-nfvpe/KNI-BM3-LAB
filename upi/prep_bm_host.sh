@@ -497,4 +497,23 @@ if ! ./scripts/gen_ignition.sh ; then
     exit 1
 fi
 
+###-----------------------------------------------------###
+### Clone upi-rt repo and copy generated config into it ###
+###-----------------------------------------------------###
+
+printf "\nCloning upi-rt repo and applying generated config...\n\n"
+
+mkdir -p upi-rt
+
+pushd upi-rt
+
+if [[ ! -f "README.md" ]]; then
+    git clone https://github.com/redhat-nfvpe/upi-rt.git .
+fi
+
+cp $PROJECT_DIR/terraform/cluster/terraform.tfvars terraform/cluster/.
+cp $PROJECT_DIR/terraform/workers/terraform.tfvars terraform/workers/.
+
+popd
+
 printf "\nDONE\n"
