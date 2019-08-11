@@ -230,11 +230,6 @@ fi
 COMMAND=$1
 shift
 
-if [[ -z "$PROJECT_DIR" ]]; then
-    usage
-    exit 1
-fi
-
 # shellcheck disable=SC1091
 source "common.sh"
 
@@ -258,7 +253,7 @@ parse_prep_bm_host_src "$prep_host_setup_src"
 # shellcheck disable=SC1090
 source "$PROJECT_DIR/scripts/network_conf.sh"
 
-out_dir=${out_dir:-$HAPROX_DIR}
+out_dir=${out_dir:-$HAPROXY_DIR}
 out_dir=$(realpath "$out_dir")
 
 parse_manifests "$manifest_dir"
