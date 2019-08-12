@@ -37,14 +37,14 @@ declare -A CLUSTER_MAP=(
     [nameserver]="==${BM_IP_NS}"
     [cluster_id]="%install-config.metadata.name"
     [cluster_domain]="%install-config.baseDomain"
-    [provisioning_interface]="==$PROV_BRIDGE"
-    [baremetal_interface]="==$BM_BRIDGE"
+    [provisioning_interface]="==$PROV_INTF"
+    [baremetal_interface]="==$BM_INTF"
     [master_count]="%install-config.controlPlane.replicas"
 )
 export CLUSTER_MAP
 
 declare -A CLUSTER_MASTER_MAP=(
-    [master-\\1.install_dev]="=master-([012]+).metadata.name=vda"    
+    [master-\\1.install_dev]="=master-([012]+).metadata.name=sda"    
     [master-\\1.spec.public_ipv4]="%master-([012]+).metadata.annotations.kni.io\/sdnIPv4"
     [master-\\1.spec.public_mac]="%master-([012]+).metadata.annotations.kni.io\/sdnNetworkMac"
     # The following is an example of a rule that allows

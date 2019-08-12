@@ -140,7 +140,7 @@ log-dhcp
 dhcp-no-override
 dhcp-authoritative
 
-#dhcp-hostsfile=/etc/dnsmasq.d/dnsmasq.hostsfile
+dhcp-hostsfile=/etc/dnsmasq.d/dnsmasq.hostsfile
 dhcp-leasefile=/var/run/dnsmasq/dnsmasq.leasefile
 log-facility=/var/run/dnsmasq/dnsmasq.log
 
