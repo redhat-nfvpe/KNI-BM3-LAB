@@ -262,19 +262,7 @@ map_cluster_vars() {
     # shellcheck disable=SC1091
     source scripts/cluster_map.sh
 
-    # The keys in the following associative array
-    # specify varies to be emitted in the terraform vars file.
-    # the associated value contains
-    #  1. A static string value
-    #  2. A string with ENV vars that have been previously defined
-    #  3. A string prepended with '%' to indicate the final value is
-    #     located in the MANIFEST_VALS array
-    #  4. MANIFEST_VALS references may contain path.[field].field
-    #     i.e. bootstrap.spec.bmc.[credentialsName].password
-    #     in this instance [name].field references another manifest file
-    #  5. If a rule ends with an '@', the field will be base64 decoded
-    #
-
+    
     # Generate the cluster terraform values for the fixed
     # variables
     #
