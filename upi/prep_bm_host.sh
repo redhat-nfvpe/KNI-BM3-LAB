@@ -39,6 +39,23 @@ source "scripts/utils.sh"
 
 # ?
 
+###-------------------------------------------###
+### Install virt repo and get latest libvirtd ###
+###-------------------------------------------###
+
+printf "\nInstalling latest libvirtd via yum...\n\n"
+
+cat <<EOF > /etc/yum.repos.d/virt.repo
+[virt]
+name=virt
+baseurl=http://mirror.centos.org/centos/7/virt/x86_64/libvirt-latest/
+enabled=1
+gpgcheck=0
+EOF
+
+sudo yum install -y qemu-kvm
+sudo yum update -y qemu-kvm
+
 ###--------------###
 ### Install Epel ###
 ###--------------###
