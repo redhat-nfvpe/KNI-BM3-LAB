@@ -123,6 +123,7 @@ EOF
 
 cat <<EOF > /etc/sysconfig/network-scripts/ifcfg-$BM_INTF
 TYPE=Ethernet
+NM_CONTROLLED=no
 PROXY_METHOD=none
 BROWSER_ONLY=no
 BOOTPROTO=static
