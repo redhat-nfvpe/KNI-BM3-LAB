@@ -428,7 +428,9 @@ if [[ ! -f "/usr/local/bin/openshift-install" ]]; then
     curl -O https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/$LATEST_OCP_INSTALLER
     tar xvf $LATEST_OCP_INSTALLER
     sudo mv openshift-install /usr/local/bin/
+fi
 
+if [[ ! -f "/usr/local/bin/oc" ]]; then
     LATEST_OCP_CLIENT=`curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/ | grep openshift-client-linux | cut -d '"' -f 8`
     curl -O https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/$LATEST_OCP_CLIENT
     tar xvf $LATEST_OCP_CLIENT
