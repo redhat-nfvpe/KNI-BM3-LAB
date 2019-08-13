@@ -76,13 +76,35 @@ gen_config_db() {
                                 )
 
 _etcd-server-ssl._tcp.$cluster_id.$cluster_domain. 8640 IN    SRV 0 10 2380 etcd-0.$cluster_id.$cluster_domain.
-                                                              SRV 0 10 2380 etcd-1.$cluster_id.$cluster_domain.
-                                                              SRV 0 10 2380 etcd-2.$cluster_id.$cluster_domain.
+EOF
+
+    # shellcheck disable=SC2129
+    {
+        if [ "${FINAL_VALS[master_count]}" = 3 ] &&
+            [ -n "${FINAL_VALS[master\-1.spec.bootMACAddress]}" ] &&
+            [ -n "${FINAL_VALS[master\-2.spec.bootMACAddress]}" ]; then
+            printf "                                                   SRV 0 10 2380 etcd-1.%s.%s.\n" "$cluster_id" "$cluster_domain"
+            printf "                                                   SRV 0 10 2380 etcd-2.%s.%s.\n" "$cluster_id" "$cluster_domain"
+        fi
+        printf "\n"
+    } >>"$cfg_file"
+
+    cat <<EOF >>"$cfg_file"
 api.$cluster_id.$cluster_domain.                        A $(nthhost "$BM_IP_CIDR" 1)
 api-int.$cluster_id.$cluster_domain.                    A $(nthhost "$BM_IP_CIDR" 1)
 $cluster_id-master-0.$cluster_domain.                   A $(get_master_bm_ip 0)
-$cluster_id-master-1.$cluster_domain.                   A $(get_master_bm_ip 1)
-$cluster_id-master-2.$cluster_domain.                   A $(get_master_bm_ip 2)
+EOF
+
+    {
+        if [ "${FINAL_VALS[master_count]}" = 3 ] &&
+            [ -n "${FINAL_VALS[master\-1.spec.bootMACAddress]}" ] &&
+            [ -n "${FINAL_VALS[master\-2.spec.bootMACAddress]}" ]; then
+            printf "%s-master-1.%s.                   A %s\n" "$cluster_id" "$cluster_domain" "$(get_master_bm_ip 1)"
+            printf "%s-master-1.%s.                   A %s\n" "$cluster_id" "$cluster_domain" "$(get_master_bm_ip 1)"
+        fi
+    } >>"$cfg_file"
+
+    cat <<EOF >>"$cfg_file"
 $cluster_id-worker-0.$cluster_domain.                   A $(get_worker_bm_ip 0)
 $cluster_id-bootstrap.$cluster_domain.                  A $(nthhost "$BM_IP_CIDR" 10)
 etcd-0.$cluster_id.$cluster_domain.                     IN  CNAME $cluster_id-master-0.$cluster_domain.
@@ -90,7 +112,6 @@ etcd-0.$cluster_id.$cluster_domain.                     IN  CNAME $cluster_id-ma
 \$ORIGIN apps.$cluster_id.$cluster_domain.
 *                                                    A                $(nthhost "$BM_IP_CIDR" 1)
 EOF
-
     echo "$cfg_file"
 }
 
