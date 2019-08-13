@@ -164,7 +164,7 @@ if [[ -f "/usr/local/bin/openshift-install" && "$1" == "all" ]]; then
     sudo rm -f /usr/local/bin/openshift-install
 fi
 
-if [[ -f "/usr/local/bin/oc" ]]; then
+if [[ -f "/usr/local/bin/oc" && "$1" == "all" ]]; then
     sudo rm -f /usr/local/bin/oc
 fi
 
