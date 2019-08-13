@@ -81,9 +81,9 @@ gen_hostfile_bm() {
     #     printf "    mac_address: \"%s\"\n" "${FINAL_VALS[$m.spec.bootMACAddress]}" | sudo tee -a "$ofile"
     #
     # done
-    cat <<EOF >>"$hostsfile"
-192.168.111.20,${FINAL_VALS[cluster_id]}-worker-0.${FINAL_VALS[cluster_domain]}
-EOF
+    #    cat <<EOF >>"$hostsfile"
+    # 192.168.111.20,${FINAL_VALS[cluster_id]}-worker-0.${FINAL_VALS[cluster_domain]}
+    # EOF
 
 }
 
