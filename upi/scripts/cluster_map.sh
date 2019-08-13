@@ -12,6 +12,38 @@ declare -A NO_TERRAFORM_MAP=(
 )
 export NO_TERRAFORM_MAP
 
+# The following arrays map values to key / value paris in the FINAL_VALS array.
+# The CLUSTER_MAP/ WORKER_MAP are used to generate terraform configuration files.
+# Each entry in CLUSTER_MAP directly corresponds to a config line generated in 
+# a terraform tfvarfs file.  If an entry in CLUSTER_MAP should not be included
+# in terraform, add the key to the NO_TERRAFORM_MAP above.
+# For example, bootstrap_sdn_mac_address is used to generate dnsmasq values but
+# is not used in the terraform cluster tfvars file.
+#
+# The syntax of the rules are as follows...
+#
+#  1. "==<constant_string>"  -> terraform_key = "<constant_string"
+#      <constant_string> can include env vars that are defined elsewhere
+#      i.e. [bootstrap_ign_file]="==$OPENSHIFT_DIR/bootstrap.ign"
+#            bootstrap_ign_file = "/home/user/project_dir/ocp/bootstrap.ign"
+#
+#  2. "%<yaml_reference>"    -> terraform_key = "MANIFEST_VALS[yaml_reference]"
+#      <yaml_reference> should be of the form yaml_object_name.path...
+#      i.e. [bootstrap_mac_address]="%bootstrap.spec.bootMACAddress"
+#            bootstrap_mac_address = "contents of bootstrap.yaml(metadata.name==bootstrap)/spec.bootMACAddress"
+#      yaml references can include an indirect reference to another
+#      yaml object.  
+#
+#      i.e. bootstrap.spec.bmc.[credentialsName].password
+#      In this instance [name].field references another manifest file
+#      a yaml object of the name found in the credentialsName field 
+#      will be used to lookup another value.  This feature can be used
+#      to allow a BareMetalHost to contain the name of another Secret
+#      manifest that contains IPMI crendtials
+#
+#  3. If a rule ends with an '@', the field will be decoded as base64
+
+
 declare -A CLUSTER_MAP=(
     [bootstrap_ign_file]="==$OPENSHIFT_DIR/bootstrap.ign"
     [master_ign_file]="==$OPENSHIFT_DIR/master.ign"
@@ -33,6 +65,8 @@ declare -A CLUSTER_MAP=(
     [bootstrap_vcpu]="==6"
     [bootstrap_provisioning_bridge]="==$PROV_BRIDGE"
     [bootstrap_baremetal_bridge]="==$BM_BRIDGE"
+    [bootstrap_provisioning_interface]="==ens3"
+    [bootstrap_baremetal_interface]="==ens4"
     [bootstrap_install_dev]="==vda"
     [nameserver]="==${BM_IP_NS}"
     [cluster_id]="%install-config.metadata.name"
