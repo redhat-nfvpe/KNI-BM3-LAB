@@ -397,49 +397,9 @@ fi
 
 printf "\nConfiguring CoreDNS...\n\n"
 
-# FIXME: HACK.  Remove next line after we break this out.
-mkdir -p $PROJECT_DIR/coredns
-
-if [[ ! -f "coredns/Corefile" ]]; then
-cat <<EOF > coredns/Corefile
-.:53 {
-    log
-    errors
-    forward . 10.11.5.19
-}
-
-tt.testing:53 {
-    log
-    errors
-    file /etc/coredns/db.tt.testing
-    debug
-}
-
-EOF
-
-cat <<'EOF' > coredns/db.tt.testing
-$ORIGIN tt.testing.
-$TTL 10800      ; 3 hours
-@       3600 IN SOA sns.dns.icann.org. noc.dns.icann.org. (
-                                2019010101 ; serial
-                                7200       ; refresh (2 hours)
-                                3600       ; retry (1 hour)
-                                1209600    ; expire (2 weeks)
-                                3600       ; minimum (1 hour)
-                                )
-
-_etcd-server-ssl._tcp.test1.tt.testing. 8640 IN    SRV 0 10 2380 etcd-0.test1.tt.testing.
-
-api.test1.tt.testing.                        A $(nthhost $BM_IP_CIDR 1)
-api-int.test1.tt.testing.                    A $(nthhost $BM_IP_CIDR 1)
-test1-master-0.tt.testing.                   A $(nthhost $BM_IP_CIDR 11)
-test1-worker-0.tt.testing.                   A $(nthhost $BM_IP_CIDR 50)
-test1-bootstrap.tt.testing.                  A $(nthhost $BM_IP_CIDR 10)
-etcd-0.test1.tt.testing.                     IN  CNAME test1-master-0.tt.testing.
-
-$ORIGIN apps.test1.tt.testing.
-*                                                    A                $(nthhost $BM_IP_CIDR 1)
-EOF
+if ! ./scripts/gen_coredns.sh ; then
+    echo "CoreDNS config generation error.  Exiting!"
+    exit 1
 fi
 
 ###-------------------------###
@@ -448,11 +408,9 @@ fi
 
 printf "\nStarting CoreDNS container...\n\n"
 
-COREDNS_CONTAINER=`podman ps | grep coredns`
-
-if [[ -z "$COREDNS_CONTAINER" ]]; then
-    podman run -d --expose=53 --expose=53/udp -p $(nthhost $BM_IP_CIDR 1):53:53 -p $(nthhost $BM_IP_CIDR 1):53:53/udp \
-    -v $PROJECT_DIR/coredns:/etc/coredns:z --name coredns coredns/coredns:latest -conf /etc/coredns/Corefile
+if ! ./scripts/gen_coredns.sh start ; then
+    echo "CoreDNS container start error.  Exiting!"
+    exit 1
 fi
 
 ###----------------------------###
