@@ -447,14 +447,14 @@ if [[ ! -f "/usr/bin/terraform" ]]; then
     curl -O https://releases.hashicorp.com/terraform/0.12.2/terraform_0.12.2_linux_amd64.zip
     unzip terraform_0.12.2_linux_amd64.zip
     sudo mv terraform /usr/bin/.
+fi
 
-    if [[ ! -d "/tmp/terraform-provider-matchbox" ]]; then
-        git clone https://github.com/poseidon/terraform-provider-matchbox.git
-        cd terraform-provider-matchbox
-        go build
-        mkdir -p ~/.terraform.d/plugins
-        cp terraform-provider-matchbox ~/.terraform.d/plugins/.
-    fi
+if [[ ! -d "/tmp/terraform-provider-matchbox" ]]; then
+    git clone https://github.com/poseidon/terraform-provider-matchbox.git
+    cd terraform-provider-matchbox
+    go build
+    mkdir -p ~/.terraform.d/plugins
+    cp terraform-provider-matchbox ~/.terraform.d/plugins/.
 fi
 
 popd
