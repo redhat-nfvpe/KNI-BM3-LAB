@@ -117,7 +117,7 @@ download_assets() {
             printf "Failed to download assets..."
             exit 1
         fi
-    )
+    ) || exit 1
 }
 
 make_certs() {
@@ -131,19 +131,19 @@ make_certs() {
                 cp ca.crt server.crt server.key "$MATCHBOX_DATA_DIR/etc/matchbox"
                 cp ca.crt client.crt client.key ~/.matchbox
             else
-                printf "cert-gen failed!"
+                printf "cert-gen failed!\n"
                 exit 1
             fi
         else
             printf "%s does not exist, 'gen_matchbox.sh clone-repo' first?" "$MATCHBOX_DIR/scripts/tls"
             exit 1
         fi
-    )
+    ) || exit 1
 }
 
 make_dirs() {
 
-    mkdir -p ~/.matchbox
+    mkdir -p ~/.matchbox || exit 1
     mkdir -p "$MATCHBOX_DIR" || exit 1
     mkdir -p "$MATCHBOX_ETC_DIR" || exit 1
     mkdir -p "$MATCHBOX_VAR_LIB" || exit 1
