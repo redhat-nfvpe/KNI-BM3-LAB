@@ -344,51 +344,30 @@ if [[ -z "$DNSMASQ_BM_CONTAINER" ]]; then
     --cap-add=NET_ADMIN quay.io/poseidon/dnsmasq --conf-file=/etc/dnsmasq.d/dnsmasq.conf -u root -d -q
 fi
 
-###--------------------###
-### Configure matchbox ###
-###--------------------###
+###----------------------------------------###
+### Configure and start matchbox container ###
+###----------------------------------------###
 
-printf "\nConfiguring matchbox...\n\n"
+printf "\nConfiguring and starting matchbox container...\n\n"
 
-mkdir -p ~/.matchbox
-mkdir -p matchbox
-sudo mkdir -p /etc/matchbox
-
-pushd matchbox
-
-if [[ ! -f "Makefile" ]]; then
-    git clone https://github.com/poseidon/matchbox.git .
-    pushd scripts/tls
-    export SAN=IP.1:$(nthhost $PROV_IP_CIDR 10)
-    ./cert-gen
-    sudo cp ca.crt server.crt server.key /etc/matchbox
-    cp ca.crt client.crt client.key ~/.matchbox 
-    popd
+if ! ./scripts/gen_matchbox.sh repo ; then
+    echo "Matchbox repo clone error.  Exiting!"
+    exit 1
 fi
 
-popd
-
-# TODO: Have this use the same "matchbox" directory as above?
-if [[ ! -d "/var/lib/matchbox/assets" ]]; then
-    sudo mkdir /var/lib/matchbox/assets
-    pushd /var/lib/matchbox/assets
-    curl -O https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.1/4.1.0/rhcos-4.1.0-x86_64-installer-initramfs.img
-    curl -O https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.1/4.1.0/rhcos-4.1.0-x86_64-installer-kernel
-    curl -O https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.1/4.1.0/rhcos-4.1.0-x86_64-metal-bios.raw.gz
-    curl -O https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.1/4.1.0/rhcos-4.1.0-x86_64-metal-uefi.raw.gz
-    popd
+if ! ./scripts/gen_matchbox.sh assets ; then
+    echo "Matchbox assets download error.  Exiting!"
+    exit 1
 fi
 
-###--------------------------###
-### Start matchbox container ###
-###--------------------------###
+if ! ./scripts/gen_matchbox.sh certs ; then
+    echo "Matchbox certs generation error.  Exiting!"
+    exit 1
+fi
 
-printf "\nStarting matchbox container...\n\n"
-
-MATCHBOX_CONTAINER=`podman ps | grep matchbox`
-
-if [[ -z "$MATCHBOX_CONTAINER" ]]; then
-    podman run -d --net=host --name matchbox -v /var/lib/matchbox:/var/lib/matchbox:Z -v /etc/matchbox:/etc/matchbox:Z,ro quay.io/poseidon/matchbox:latest -address=0.0.0.0:8080 -rpc-address=0.0.0.0:8081 -log-level=debug
+if ! ./scripts/gen_matchbox.sh start ; then
+    echo "Matchbox container start error.  Exiting!"
+    exit 1
 fi
 
 ###----------------------------------------###
