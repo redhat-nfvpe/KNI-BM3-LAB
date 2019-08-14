@@ -6,3 +6,5 @@ matchbox/*
 haproxy/*
 coredns/*
 upi-rt/*
+matchbox/*
+matchbox-data/*
