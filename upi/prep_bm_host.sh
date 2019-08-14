@@ -6,6 +6,7 @@
 ### Need interface input from user via environment ###
 ###------------------------------------------------###
 
+# shellcheck disable=SC1091
 source cluster/prep_bm_host.src
 
 printf "\nChecking parameters...\n\n"
@@ -45,7 +46,7 @@ source "scripts/utils.sh"
 
 printf "\nInstalling latest libvirtd via yum...\n\n"
 
-cat <<EOF > /etc/yum.repos.d/virt.repo
+cat <<EOF >/etc/yum.repos.d/virt.repo
 [virt]
 name=virt
 baseurl=http://mirror.centos.org/centos/7/virt/x86_64/libvirt-latest/
@@ -76,9 +77,9 @@ sudo yum install -y git podman unzip ipmitool dnsmasq bridge-utils python-pip jq
 ### Configure provisioning interface and bridge ###
 ###---------------------------------------------###
 
-printf "\nConfiguring provisioning interface ($PROV_INTF) and bridge ($PROV_BRIDGE)...\n\n"
+printf "\nConfiguring provisioning interface (%s) and bridge (%s)...\n\n" "$PROV_INTF" "$PROV_BRIDGE"
 
-cat <<EOF > /etc/sysconfig/network-scripts/ifcfg-$PROV_BRIDGE
+cat <<EOF >"/etc/sysconfig/network-scripts/ifcfg-$PROV_BRIDGE"
 TYPE=Bridge
 PROXY_METHOD=none
 BROWSER_ONLY=no
@@ -88,12 +89,12 @@ IPV4_FAILURE_FATAL=no
 NAME=$PROV_BRIDGE
 DEVICE=$PROV_BRIDGE
 ONBOOT=yes
-IPADDR=$(nthhost $PROV_IP_CIDR 10)
+IPADDR=$(nthhost "$PROV_IP_CIDR" 10)
 NETMASK=255.255.255.0
 ZONE=public
 EOF
 
-cat <<EOF > /etc/sysconfig/network-scripts/ifcfg-$PROV_INTF
+cat <<EOF >"/etc/sysconfig/network-scripts/ifcfg-$PROV_INTF"
 TYPE=Ethernet
 PROXY_METHOD=none
 BROWSER_ONLY=no
@@ -106,19 +107,19 @@ ONBOOT=yes
 BRIDGE=$PROV_BRIDGE
 EOF
 
-ifdown $PROV_BRIDGE
-ifup $PROV_BRIDGE
+ifdown "$PROV_BRIDGE"
+ifup "$PROV_BRIDGE"
 
-ifdown $PROV_INTF
-ifup $PROV_INTF
+ifdown "$PROV_INTF"
+ifup "$PROV_INTF"
 
 ###-------------------------------###
 ### Configure baremetal interface ###
 ###-------------------------------###
 
-printf "\nConfiguring baremetal interface ($BM_INTF) and bridge ($BM_BRIDGE)...\n\n"
+printf "\nConfiguring baremetal interface (%s) and bridge (%s)...\n\n" "$BM_INTF" "$BM_BRIDGE"
 
-cat <<EOF > /etc/sysconfig/network-scripts/ifcfg-$BM_BRIDGE
+cat <<EOF >"/etc/sysconfig/network-scripts/ifcfg-$BM_BRIDGE"
 TYPE=Bridge
 NM_CONTROLLED=no
 PROXY_METHOD=none
@@ -133,12 +134,12 @@ IPV6_FAILURE_FATAL=no
 IPV6_ADDR_GEN_MODE=stable-privacy
 NAME=$BM_BRIDGE
 DEVICE=$BM_BRIDGE
-IPADDR=$(nthhost $BM_IP_CIDR 1)
+IPADDR=$(nthhost "$BM_IP_CIDR" 1)
 NETMASK=255.255.255.0
 ONBOOT=yes
 EOF
 
-cat <<EOF > /etc/sysconfig/network-scripts/ifcfg-$BM_INTF
+cat <<EOF >"/etc/sysconfig/network-scripts/ifcfg-$BM_INTF"
 TYPE=Ethernet
 NM_CONTROLLED=no
 PROXY_METHOD=none
@@ -152,11 +153,11 @@ ONBOOT=yes
 BRIDGE=$BM_BRIDGE
 EOF
 
-ifdown $BM_BRIDGE
-ifup $BM_BRIDGE
+ifdown "$BM_BRIDGE"
+ifup "$BM_BRIDGE"
 
-ifdown $BM_INTF
-ifup $BM_INTF
+ifdown "$BM_INTF"
+ifup "$BM_INTF"
 
 ###--------------------------------------------------###
 ### Configure iptables to allow for external traffic ###
@@ -164,7 +165,7 @@ ifup $BM_INTF
 
 printf "\nConfiguring iptables to allow for external traffic...\n\n"
 
-cat <<EOF > scripts/iptables.sh
+cat <<EOF >scripts/iptables.sh
 #!/bin/bash
 
 ins_del_rule()
@@ -212,10 +213,11 @@ ins_del_rule()
     fi
 EOF
 
-pushd scripts
-chmod 755 iptables.sh
-./iptables.sh
-popd
+(
+    cd scripts
+    chmod 755 iptables.sh
+    ./iptables.sh
+) || exit 1
 
 ###--------------------###
 ### Install Yq via pip ###
@@ -234,21 +236,23 @@ export GOPATH=$HOME/go/src
 export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 
 if [[ ! -d "/usr/local/go" ]]; then
-    pushd /tmp
+    (
+        cd /tmp
 
-    curl -O https://dl.google.com/go/go1.12.6.linux-amd64.tar.gz
-    tar -xzf go1.12.6.linux-amd64.tar.gz
-    sudo mv go /usr/local
-    
-    GOINSTALLED=`grep GOROOT ~/.bash_profile`
-    
-    if [[ -z "$GOINSTALLED" ]]; then
-        echo "export GOROOT=/usr/local/go" >> ~/.bash_profile
-        echo "export GOPATH=$HOME/go/src" >> ~/.bash_profile
-        echo "export PATH=$GOPATH/bin:$GOROOT/bin:$PATH" >> ~/.bash_profile
-    fi
+        curl -O https://dl.google.com/go/go1.12.6.linux-amd64.tar.gz
+        tar -xzf go1.12.6.linux-amd64.tar.gz
+        sudo mv go /usr/local
 
-    popd
+        GOINSTALLED=$(grep GOROOT ~/.bash_profile)
+
+        if [[ -z "$GOINSTALLED" ]]; then
+            {
+                echo "export GOROOT=/usr/local/go"
+                echo "export GOPATH=$HOME/go/src"
+                echo "export PATH=$GOPATH/bin:$GOROOT/bin:$PATH"
+            } >>~/.bash_profile
+        fi
+    ) || exit 1
 fi
 
 ###-----------------------------------###
@@ -282,10 +286,11 @@ printf "\nSetting up tftpboot...\n\n"
 
 if [[ ! -d "/var/lib/tftpboot" ]]; then
     mkdir -p /var/lib/tftpboot
-    pushd /var/lib/tftpboot
-    curl -O http://boot.ipxe.org/ipxe.efi
-    curl -O http://boot.ipxe.org/undionly.kpxe
-    popd
+    (
+        cd /var/lib/tftpboot
+        curl -O http://boot.ipxe.org/ipxe.efi
+        curl -O http://boot.ipxe.org/undionly.kpxe
+    ) || exit 1
 fi
 
 ###-------------------------###
@@ -294,12 +299,12 @@ fi
 
 printf "\nStarting haproxy container...\n\n"
 
-if ! ./scripts/gen_haproxy.sh build ; then
+if ! ./scripts/gen_haproxy.sh build; then
     echo "HAProxy container build error.  Exiting!"
     exit 1
 fi
 
-if ! ./scripts/gen_haproxy.sh start ; then
+if ! ./scripts/gen_haproxy.sh start; then
     echo "HAProxy container start error.  Exiting!"
     exit 1
 fi
@@ -310,18 +315,18 @@ fi
 
 printf "\nStarting provisioning dnsmasq container...\n\n"
 
-if ! ./scripts/gen_config_prov.sh ; then
+if ! ./scripts/gen_config_prov.sh; then
     echo "Provisioning dnsmasq container config generation error.  Exiting!"
     exit 1
 fi
 
-DNSMASQ_PROV_CONTAINER=`podman ps | grep dnsmasq-prov`
+DNSMASQ_PROV_CONTAINER=$(podman ps | grep dnsmasq-prov)
 
 if [[ -z "$DNSMASQ_PROV_CONTAINER" ]]; then
-    podman run -d --name dnsmasq-prov --net=host -v $PROJECT_DIR/dnsmasq/prov/var/run:/var/run/dnsmasq:Z \
-    -v $PROJECT_DIR/dnsmasq/prov/etc/dnsmasq.d:/etc/dnsmasq.d:Z \
-    --expose=53 --expose=53/udp --expose=67 --expose=67/udp --expose=69 --expose=69/udp \
-    --cap-add=NET_ADMIN quay.io/poseidon/dnsmasq --conf-file=/etc/dnsmasq.d/dnsmasq.conf -u root -d -q
+    podman run -d --name dnsmasq-prov --net=host -v "$PROJECT_DIR/dnsmasq/prov/var/run:/var/run/dnsmasq:Z" \
+        -v "$PROJECT_DIR/dnsmasq/prov/etc/dnsmasq.d:/etc/dnsmasq.d:Z" \
+        --expose=53 --expose=53/udp --expose=67 --expose=67/udp --expose=69 --expose=69/udp \
+        --cap-add=NET_ADMIN quay.io/poseidon/dnsmasq --conf-file=/etc/dnsmasq.d/dnsmasq.conf -u root -d -q
 fi
 
 ###-----------------------------------###
@@ -330,18 +335,18 @@ fi
 
 printf "\nStarting baremetal dnsmasq container...\n\n"
 
-if ! ./scripts/gen_config_bm.sh ; then
+if ! ./scripts/gen_config_bm.sh; then
     echo "Baremetal dnsmasq container config generation error.  Exiting!"
     exit 1
 fi
 
-DNSMASQ_BM_CONTAINER=`podman ps | grep dnsmasq-bm`
+DNSMASQ_BM_CONTAINER=$(podman ps | grep dnsmasq-bm)
 
 if [[ -z "$DNSMASQ_BM_CONTAINER" ]]; then
-    podman run -d --name dnsmasq-bm --net=host -v $PROJECT_DIR/dnsmasq/bm/var/run:/var/run/dnsmasq:Z \
-    -v $PROJECT_DIR/dnsmasq/bm/etc/dnsmasq.d:/etc/dnsmasq.d:Z \
-    --expose=53 --expose=53/udp --expose=67 --expose=67/udp --expose=69 --expose=69/udp \
-    --cap-add=NET_ADMIN quay.io/poseidon/dnsmasq --conf-file=/etc/dnsmasq.d/dnsmasq.conf -u root -d -q
+    podman run -d --name dnsmasq-bm --net=host -v "$PROJECT_DIR/dnsmasq/bm/var/run:/var/run/dnsmasq:Z" \
+        -v "$PROJECT_DIR/dnsmasq/bm/etc/dnsmasq.d:/etc/dnsmasq.d:Z" \
+        --expose=53 --expose=53/udp --expose=67 --expose=67/udp --expose=69 --expose=69/udp \
+        --cap-add=NET_ADMIN quay.io/poseidon/dnsmasq --conf-file=/etc/dnsmasq.d/dnsmasq.conf -u root -d -q
 fi
 
 ###----------------------------------------###
@@ -350,23 +355,8 @@ fi
 
 printf "\nConfiguring and starting matchbox container...\n\n"
 
-if ! ./scripts/gen_matchbox.sh repo ; then
-    echo "Matchbox repo clone error.  Exiting!"
-    exit 1
-fi
-
-if ! ./scripts/gen_matchbox.sh assets ; then
-    echo "Matchbox assets download error.  Exiting!"
-    exit 1
-fi
-
-if ! ./scripts/gen_matchbox.sh certs ; then
-    echo "Matchbox certs generation error.  Exiting!"
-    exit 1
-fi
-
-if ! ./scripts/gen_matchbox.sh start ; then
-    echo "Matchbox container start error.  Exiting!"
+if ! ./scripts/gen_matchbox.sh all; then
+    echo "Matchbox install failed.  Exiting!"
     exit 1
 fi
 
@@ -376,7 +366,7 @@ fi
 
 printf "\nConfiguring CoreDNS...\n\n"
 
-if ! ./scripts/gen_coredns.sh ; then
+if ! ./scripts/gen_coredns.sh; then
     echo "CoreDNS config generation error.  Exiting!"
     exit 1
 fi
@@ -387,7 +377,7 @@ fi
 
 printf "\nStarting CoreDNS container...\n\n"
 
-if ! ./scripts/gen_coredns.sh start ; then
+if ! ./scripts/gen_coredns.sh start; then
     echo "CoreDNS container start error.  Exiting!"
     exit 1
 fi
@@ -398,47 +388,47 @@ fi
 
 printf "\nInstalling OpenShift binaries...\n\n"
 
-pushd /tmp
+(
+    cd /tmp
 
-if [[ ! -f "/usr/local/bin/openshift-install" ]]; then
-    # FIXME: This is a cheap hack to get the latest version, but will fail if the
-    # target index page's HTML fields change
-    LATEST_OCP_INSTALLER=`curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/ | grep openshift-install-linux | cut -d '"' -f 8`
-    curl -O https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/$LATEST_OCP_INSTALLER
-    tar xvf $LATEST_OCP_INSTALLER
-    sudo mv openshift-install /usr/local/bin/
-fi
+    if [[ ! -f "/usr/local/bin/openshift-install" ]]; then
+        # FIXME: This is a cheap hack to get the latest version, but will fail if the
+        # target index page's HTML fields change
+        LATEST_OCP_INSTALLER=$(curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/ | grep openshift-install-linux | cut -d '"' -f 8)
+        curl -O "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/$LATEST_OCP_INSTALLER"
+        tar xvf "$LATEST_OCP_INSTALLER"
+        sudo mv openshift-install /usr/local/bin/
+    fi
 
-if [[ ! -f "/usr/local/bin/oc" ]]; then
-    LATEST_OCP_CLIENT=`curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/ | grep openshift-client-linux | cut -d '"' -f 8`
-    curl -O https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/$LATEST_OCP_CLIENT
-    tar xvf $LATEST_OCP_CLIENT
-    sudo mv oc /usr/local/bin/
-fi
+    if [[ ! -f "/usr/local/bin/oc" ]]; then
+        LATEST_OCP_CLIENT=$(curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/ | grep openshift-client-linux | cut -d '"' -f 8)
+        curl -O "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/$LATEST_OCP_CLIENT"
+        tar xvf "$LATEST_OCP_CLIENT"
+        sudo mv oc /usr/local/bin/
+    fi
 
-###-------------------###
-### Prepare terraform ###
-###-------------------###
+    ###-------------------###
+    ### Prepare terraform ###
+    ###-------------------###
 
-printf "\nInstalling Terraform and generating config...\n\n"
+    printf "\nInstalling Terraform and generating config...\n\n"
 
-if [[ ! -f "/usr/bin/terraform" ]]; then
-    curl -O https://releases.hashicorp.com/terraform/0.12.2/terraform_0.12.2_linux_amd64.zip
-    unzip terraform_0.12.2_linux_amd64.zip
-    sudo mv terraform /usr/bin/.
-fi
+    if [[ ! -f "/usr/bin/terraform" ]]; then
+        curl -O "https://releases.hashicorp.com/terraform/0.12.2/terraform_0.12.2_linux_amd64.zip"
+        unzip terraform_0.12.2_linux_amd64.zip
+        sudo mv terraform /usr/bin/.
+    fi
 
-if [[ ! -d "/tmp/terraform-provider-matchbox" ]]; then
-    git clone https://github.com/poseidon/terraform-provider-matchbox.git
-    cd terraform-provider-matchbox
-    go build
-    mkdir -p ~/.terraform.d/plugins
-    cp terraform-provider-matchbox ~/.terraform.d/plugins/.
-fi
+    if [[ ! -d "/tmp/terraform-provider-matchbox" ]]; then
+        git clone https://github.com/poseidon/terraform-provider-matchbox.git
+        cd terraform-provider-matchbox
+        go build
+        mkdir -p ~/.terraform.d/plugins
+        cp terraform-provider-matchbox ~/.terraform.d/plugins/.
+    fi
+) || exit 1
 
-popd
-
-if ! ./gen_terraform.sh all ; then
+if ! ./gen_terraform.sh all; then
     echo "Terraform config generation error.  Exiting!"
     exit 1
 fi
@@ -449,7 +439,7 @@ fi
 
 printf "\nGenerating ignition config...\n\n"
 
-if ! ./scripts/gen_ignition.sh ; then
+if ! ./scripts/gen_ignition.sh; then
     echo "Ignition config generation error.  Exiting!"
     exit 1
 fi
@@ -462,15 +452,15 @@ printf "\nCloning upi-rt repo and applying generated config...\n\n"
 
 mkdir -p upi-rt
 
-pushd upi-rt
+(
+    cd upi-rt
 
-if [[ ! -f "README.md" ]]; then
-    git clone https://github.com/redhat-nfvpe/upi-rt.git .
-fi
+    if [[ ! -f "README.md" ]]; then
+        git clone https://github.com/redhat-nfvpe/upi-rt.git .
+    fi
 
-cp -f $PROJECT_DIR/terraform/cluster/terraform.tfvars terraform/cluster/.
-cp -f $PROJECT_DIR/terraform/workers/terraform.tfvars terraform/workers/.
-
-popd
+    cp -f "$PROJECT_DIR/terraform/cluster/terraform.tfvars" terraform/cluster/.
+    cp -f "$PROJECT_DIR/terraform/workers/terraform.tfvars" terraform/workers/.
+) || exit 1
 
 printf "\nDONE\n"

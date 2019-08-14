@@ -218,7 +218,12 @@ parse_manifests "$manifest_dir"
 map_cluster_vars
 
 case "$COMMAND" in
-all) ;;
+all) 
+    make_clone
+    download_assets
+    make_certs
+    start_matchbox
+;;
 repo)
     make_clone
     ;;
