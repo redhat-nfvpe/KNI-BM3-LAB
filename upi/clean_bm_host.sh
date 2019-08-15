@@ -70,11 +70,7 @@ printf "\nRemoving HAProxy container and image...\n\n"
 
 printf "\nRemoving provisioning dnsmasq container...\n\n"
 
-DNSMASQ_PROV_CONTAINER=`podman ps -a | grep dnsmasq-prov`
-
-if [[ ! -z "$DNSMASQ_PROV_CONTAINER" ]]; then
-    podman rm -f dnsmasq-prov
-fi
+./scripts/gen_config_prov.sh remove
 
 ###------------------------------------###
 ### Remove baremetal dnsmasq container ###
@@ -82,11 +78,7 @@ fi
 
 printf "\nRemoving baremetal dnsmasq container...\n\n"
 
-DNSMASQ_BM_CONTAINER=`podman ps -a | grep dnsmasq-bm`
-
-if [[ ! -z "$DNSMASQ_BM_CONTAINER" ]]; then
-    podman rm -f dnsmasq-bm
-fi
+./scripts/gen_config_bm.sh remove
 
 ###--------------------------------------###
 ### Remove matchbox container and assets ###
@@ -96,12 +88,10 @@ printf "\nRemoving matchbox container and assets...\n\n"
 
 MATCHBOX_CONTAINER=`podman ps -a | grep matchbox`
 
-if [[ ! -z "$MATCHBOX_CONTAINER" ]]; then
-    podman rm -f matchbox
-fi
+./scripts/gen_matchbox.sh remove
 
-if [[ -d "/var/lib/matchbox/assets" && "$1" == "all" ]]; then
-    sudo rm -rf /var/lib/matchbox/assets
+if [[ -d "$MATCHBOX_VAR_LIB/assets" && "$1" == "all" ]]; then
+    sudo rm -rf $MATCHBOX_VAR_LIB/assets
 fi
 
 ###--------------------------###
@@ -110,11 +100,7 @@ fi
 
 printf "\nRemoving coredns container...\n\n"
 
-COREDNS_CONTAINER=`podman ps -a | grep coredns`
-
-if [[ ! -z "$COREDNS_CONTAINER" ]]; then
-    podman rm -f coredns
-fi
+./scripts/gen_coredns.sh remove
 
 ###-----------------------------------###
 ### Remove NetworkManager DNS overlay ###
