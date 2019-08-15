@@ -58,14 +58,14 @@ check_lookups() {
     done
 }
 
-check_container_run() {
+check_container_status() {
     local name="$1"
 
     if inspect=$(podman inspect "$name"); then
         printf "Error checking the %s container!\n" "$name"
         exit 1
     fi
-    if ! res=$(jq .[0].State.Running <<< "$inspect"); then
+    if ! run_status=$(jq .[0].State.Running <<< "$inspect"); then
         printf "Error checking the %s container json!\n" "$name"
         exit 1
     fi
@@ -74,6 +74,14 @@ check_container_run() {
         podman logs "$name"
         exit 1
     fi
+}
+
+check_containers() {
+    check_container_status "dnsmasq_prov"
+    check_container_status "dnsmasq_bm"
+    check_container_status "akraino-haproxy"
+    check_container_status "coredns"
+    check_container_status "matchbox"
 }
 
 check_dnsmasq_prov() {
@@ -165,8 +173,8 @@ repo)
 lookup)
     check_lookups
     ;;
-certs)
-    make_certs
+containers)
+    check_containers
     ;;
 start)
     start_matchbox
