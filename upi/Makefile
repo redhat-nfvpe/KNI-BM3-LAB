@@ -3,8 +3,10 @@ manifests := cluster/*.yaml cluster/*.src
 dnsmasq_dir = ./dnsmasq
 terraform_dir = ./terraform
 coredns_dir = ./coredns
-haproxy_dir = ./haproxy_dir
+haproxy_dir = ./haproxy
 openshift_dir = ./ocp
+matchbox_dir = ./matchbox
+matchbox_data_dir = ./matchbox-data
 
 dnsmasq_prov_conf := $(dnsmasq_dir)/prov/etc/dnsmasq.d/dnsmasq.conf
 dnsmasq_bm_conf := $(dnsmasq_dir)/bm/etc/dnsmasq.d/dnsmasq.conf
@@ -13,10 +15,17 @@ dnsmasq_conf := $(dnsmasq_bm_conf) $(dnsmasq_prov_conf)
 coredns_conf := $(coredns_dir)/Corefile
 terraform := $(terraform_dir)/cluster/terraform.tfvars $(terraform_dir)/workers/terraform.tfvars 
 ignitions := $(openshift_dir)/worker.ign $(openshift_dir)/master.ign
+matchbox_git := $(matchbox_dir)/.git
 
-all: dnsmasq haproxy coredns terraform
+all: dns_conf haproxy terraform matchbox matchbox_data
 
-dnsmasq_conf: $(dnsmasq_prov_conf) $(dnsmasq_bm_conf) $(coredns_conf)
+dns_conf: $(dnsmasq_prov_conf) $(dnsmasq_bm_conf) $(coredns_conf)
+
+matchbox: $(manifests) ./scripts/gen_matchbox.sh
+	./scripts/gen_matchbox.sh repo
+
+matchbox_data: $(manifests) ./scripts/gen_matchbox.sh
+	./scripts/gen_matchbox.sh data
 
 .PHONY: dnsmasq
 dnsmasq:  $(dnsmasq_prov_conf) $(dnsmasq_bm_conf)
@@ -53,5 +62,5 @@ $(ignitions): $(manifests) ./scripts/gen_ignition.sh
 	./scripts/gen_ignition.sh
 
 clean:
-	rm -f ./cluster/manifest_vals.sh
-	rm -rf $(coredns_dir) $(terraform_dir) $(dnsmasq_dir) $(haproxy_dir) $(openshift_dir)
+	rm -f ./cluster/manifest_vals.sh ./cluster/final_worker_vals.sh ./cluster/final_cluster_vals.sh
+	rm -rf $(coredns_dir) $(terraform_dir) $(dnsmasq_dir) $(haproxy_dir) $(openshift_dir) $(matchbox_dir) $(matchbox_data_dir)

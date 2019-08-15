@@ -12,7 +12,7 @@ spec:
   online: true
   hardwareProfile: "master"
   bmc:
-    address: ipmi://10.19.110.18
+    address: ipmi://10.19.110.10
     credentialsName: ha-lab-ipmi
   bootMACAddress: 0C:C4:7A:DB:A8:59
 

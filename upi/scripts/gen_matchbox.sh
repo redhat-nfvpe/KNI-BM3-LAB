@@ -224,6 +224,10 @@ all)
     make_certs
     start_matchbox
 ;;
+data)
+    download_assets
+    make_certs
+    ;;
 repo)
     make_clone
     ;;
